@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1,width=device-width">
+    <title>laundry day</title>
+    <style>
+
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            margin: 0;
+            border: 0;
+            overflow: hidden;
+            /*  Disable scrollbars */
+            display: inline-block;
+            text-align: left;
+            background-repeat: no-repeat;
+            /* No floating content on sides */
+            background-color: #0c0c1a;
+            background-image:
+                radial-gradient(circle closest-corner,
+                    #241c38,
+                    #0c0c1a);
+        }
+    </style>
+    <script src="p5.min.js"></script>
+    <script src="p5.dom.min.js"></script>
+    <script src="p5.sound.min.js"></script>
+    <script src="sketch.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@100&display=swap" rel="stylesheet"> 
+
+</head>
+<body>
+    <script>
+        let myp5 = new p5(sketch, 'p5sketch');
+    </script>
+</body>
+
+</html>
