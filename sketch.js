@@ -42,6 +42,8 @@ let sketch = function (p) {
 
     var dialogScreenLimit = 13;
 
+    var cellType;
+
 
     p.preload = function () {
         level = p.loadTable('level.csv');
