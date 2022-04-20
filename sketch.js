@@ -1,5 +1,13 @@
 let sketch = function (p) {
 
+
+
+    //to do
+    //dynamic player placement
+    //story lol
+    //don't run animation code unless on screen
+
+
     var grid = [];
 
     var level;
@@ -42,13 +50,13 @@ let sketch = function (p) {
 
     var dialogScreenLimit = 13;
 
-    var cellType;
-
+    var font;
 
     p.preload = function () {
-        level = p.loadTable('level.csv');
+        level = p.loadTable('leveltest.csv');
         text = p.loadJSON('text.json');
         wallSheet = p.loadImage('assets/walls.png');
+        font = p.loadFont('myprime2.ttf');
     }
 
     p.setup = function () {
@@ -62,8 +70,8 @@ let sketch = function (p) {
         maxX = gridWidthVisible * .7;
         maxY = gridHeightVisible * .7;
 
-        gridXLimit = maxX;
-        gridYLimit = maxY;
+        gridXLimit = gridWidth - (gridWidthVisible - maxX);
+        gridYLimit = gridHeight - (gridHeightVisible - maxY);
 
         for (var x = 0; x < gridWidth; x++) {
             grid[x] = [];
@@ -82,7 +90,7 @@ let sketch = function (p) {
         player = new p.Player(visibleGrid[playerStartX][playerStartY].x, visibleGrid[playerStartX][playerStartY].y, "O", playerStartX, playerStartY);
 
         visibleGrid[player.gridX][player.gridY].shouldDraw = false;
-        p.textFont("IBM Plex Mono");
+        p.textFont(font);
     };
 
     p.draw = function () {
@@ -114,33 +122,33 @@ let sketch = function (p) {
             var moveY = 0;
             switch (p.key) {
                 case upKey:
-                    moveY = -1 * cellOffset;
+                    moveY = -1;
                     break;
                 case downKey:
-                    moveY = 1 * cellOffset;
+                    moveY = 1;
                     break;
                 case rightKey:
-                    moveX = 1 * cellOffset;
+                    moveX = 1;
                     break;
                 case leftKey:
-                    moveX = -1 * cellOffset;
+                    moveX = -1;
                     break;
             }
-            if (p.checkOuterBounds(player.x + moveX, player.y + moveY)) {
+            if (p.checkOuterBounds(player.gridX + moveX, player.gridY + moveY)) {
                 var colVal = p.checkColl(player.gridX + Math.sign(moveX), player.gridY + Math.sign(moveY));
                 if (Math.sign(moveX) != 0) {
-                    if (colVal == 0 || colVal == 3) {
-                        p.switchVisibility(player.gridX, player.gridY, player.gridX + Math.sign(moveX), player.gridY + Math.sign(moveY));
-                        if (p.checkInnerBoundsX(player.x + moveX, player.y + moveY, Math.sign(moveX))) {
-                            player.move(moveX, moveY);
+                    if (colVal == 0 || colVal == 3 || colVal == 4) {
+                        p.switchVisibility(player.gridX, player.gridY, player.gridX + moveX, player.gridY + moveY);
+                        if (p.checkInnerBoundsX(player.gridX + moveX, player.gridY + moveY, moveX)) {
+                            player.move(moveX * cellOffset, moveY * cellOffset);
                         }
-                    }
+                    } 
                 }
                 if (Math.sign(moveY) != 0) {
-                    if (colVal == 0 || colVal == 3) {
-                        p.switchVisibility(player.gridX, player.gridY, player.gridX + Math.sign(moveX), player.gridY + Math.sign(moveY));
-                        if (p.checkInnerBoundsY(player.x + moveX, player.y + moveY, Math.sign(moveY))) {
-                            player.move(moveX, moveY);
+                    if (colVal == 0 || colVal == 3 || colVal == 4) {
+                        p.switchVisibility(player.gridX, player.gridY, player.gridX + moveX, player.gridY + moveY);
+                        if (p.checkInnerBoundsY(player.gridX + moveX, player.gridY + moveY, moveY)) {
+                            player.move(moveX * cellOffset, moveY * cellOffset);
                         }
                     }
                 }
@@ -190,6 +198,9 @@ let sketch = function (p) {
         } else if (visibleGrid[_cellX][_cellY].collect) {
             p.addDialog(_cellX, _cellY);
             return 3;
+        } else if(visibleGrid[_cellX][_cellY].hasOverlap){
+            visibleGrid[_cellX][_cellY].overlap();
+            return 4;
         } else {
             return 0;
         }
@@ -199,27 +210,26 @@ let sketch = function (p) {
         if (_dir < 0 && gridXVisible == 0) {
             return true;
         } else if (_dir < 0 && gridXVisible > 0) {
-            if (_newX < visibleGrid[minX][minY].x) {
+            if (_newX < minX) {
                 gridXVisible--;
                 return false;
             } else {
                 return true;
             }
         }
-        if (_dir > 0 && gridXVisible == 0) {
-            if (_newX > visibleGrid[maxX][maxY].x) {
+        if(_dir > 0 && gridXVisible == 0){
+            if(_newX < maxX){
+                return true;
+            } else if(_newX >= maxX){
                 gridXVisible++;
                 return false;
-            } else {
-                return true;
             }
-        } else if (_dir > 0 && gridXVisible > 0) {
-            if (_newX > visibleGrid[maxX][maxY].x && gridXVisible < gridXLimit) {
+        }
+        if(_dir > 0 && gridXVisible > 0){
+            if(maxX + gridXVisible < gridXLimit){
                 gridXVisible++;
                 return false;
-            } else if (gridXVisible == gridXLimit) {
-                return true;
-            } else {
+            } else{
                 return true;
             }
         }
@@ -229,7 +239,7 @@ let sketch = function (p) {
         if (_dir < 0 && gridYVisible == 0) {
             return true;
         } else if (_dir < 0 && gridYVisible > 0) {
-            if (_newY < visibleGrid[minX][minY].y) {
+            if (_newY < minY) {
                 gridYVisible--;
                 return false;
             } else {
@@ -237,29 +247,27 @@ let sketch = function (p) {
             }
         }
         if (_dir > 0 && gridYVisible == 0) {
-            if (_newY > visibleGrid[maxX][maxY].y) {
+            if (_newY < maxY) {
+                return true;
+            } else  if(_newY >= maxY){
                 gridYVisible++;
                 return false;
-            } else {
-                return true;
             }
-        } else if (_dir > 0 && gridYVisible > 0) {
-            if (_newY > visibleGrid[maxX][maxY].y && gridYVisible < gridYLimit) {
+        } 
+        if(_dir > 0 && gridYVisible > 0){
+            if(maxY + gridYVisible < gridYLimit){
                 gridYVisible++;
                 return false;
-            } else if (gridYVisible == gridYLimit) {
-                return true;
-            } else {
+            } else{
                 return true;
             }
         }
     }
 
-
     p.checkOuterBounds = function (_newX, _newY) {
-        if (_newX < visibleGrid[0][0].x || _newX > visibleGrid[visibleGrid.length - 1][visibleGrid.length - 1].x) {
+        if (_newX < 0 || _newX >= gridWidthVisible) {
             return false;
-        } else if (_newY < visibleGrid[0][0].y || _newY > visibleGrid[visibleGrid.length - 1][visibleGrid.length - 1].y) {
+        } else if (_newY < 0 || _newY >= gridHeightVisible) {
             return false;
         } else {
             return true;
@@ -294,15 +302,60 @@ let sketch = function (p) {
             this.x = _x;
             this.y = _y;
             this.img = _img;
+            this.startImg = _img;
             this.shouldDraw = true;
             this.wall = false;
             this.interact = false;
             this.collect = false;
             this.door = false;
+
+            this.hasOverlap = false;
+            this.overlapStart = 100;
+            this.overlapCount = 0;
+            this.overlapImg;
+
+            this.hasAnim = false;
+            this.animFrames = [];
+            this.animStart;
+            this.animCount;
+            this.frameIndex = 0;
+
+            this.hasAmbiant = false;
+            this.baseX = _x;
+            this.baseY = _y;
+            this.ambiantStart;
+            this.ambiantCounter;
+
             this.dialog;
-            if (this.img == "#") {
+            if (this.img == ".") {
                 this.col = p.color(100, 100, 100);
-            } else if (this.img == "%") {
+            } else if(this.img == ','){
+                this.col = p.color(50, 168, 82);
+                this.hasAmbiant = true;
+                this.ambiantStart = p.random(100, 200);
+                this.ambiantCounter = this.ambiantStart;
+                this.off = 0;
+            } else if(this.img == '#'){
+                this.col = p.color(209, 165, 63);
+                this.hasOverlap = true;
+                this.overlapImg = '≥';
+            } else if(this.img == '|'){
+                this.col = p.color(100, 100, 100);
+            } else if(this.img == '-'){
+                this.col = p.color(107, 76, 57);
+            } else if(this.img == '〰'){
+                this.col = p.color(48, 29, 16);
+            } else if(this.img == '}' || this.img == '{'){
+                this.col = p.color(61, 77, 184);
+                this.hasAnim = true;
+                this.animStart = 10;
+                this.animCount = this.animStart;
+                if(this.img == '}'){
+                    this.animFrames = ['}', '{'];
+                } else{
+                    this.animFrames = ['{', '}'];
+                }
+            } else if (this.img == '█') {
                 this.col = p.color(79, 47, 45);
                 //this.dialog = this.assignDialog();
                 this.wall = true;
@@ -314,7 +367,7 @@ let sketch = function (p) {
                 this.col = p.color(0, 0, 255);
                 this.dialog = this.assignDialog();
                 this.collect = true;
-            } else if(this.img == 'X'){
+            } else if(this.img == 'Π'){
                 this.col = p.color(176, 148, 63);
                 this.dialog = this.assignDialog();
                 this.door = true;
@@ -329,8 +382,19 @@ let sketch = function (p) {
 
         display() {
             if (this.shouldDraw) {
-                p.fill(this.col);
-                p.text(this.img, this.x, this.y);
+                    p.fill(this.col);
+                if(this.hasAnim){
+                    this.animate();
+                    p.text(this.animFrames[this.frameIndex], this.x, this.y);
+                } else{
+                    p.text(this.img, this.x, this.y);
+                }
+                if(this.hasAmbiant){
+                    this.ambiantMove();
+                }
+                if(this.hasOverlap && this.overlapCount > 0){
+                    this.overlapTimer();
+                }
             }
         }
 
@@ -339,6 +403,47 @@ let sketch = function (p) {
                 //console.log(text.dialog.scene[i]);
                 if (this.img == text.dialog.scene[i].name) {
                     return text.dialog.scene[i].line;
+                }
+            }
+        }
+
+        overlap(){
+            this.img = this.overlapImg;
+            this.overlapCount = this.overlapStart;
+        }
+
+        overlapTimer(){
+            this.overlapCount--;
+            if(this.overlapCount <= 0){
+                this.img = this.startImg;
+                this.overlapCount = 0;
+            }
+        }
+
+        animate(){
+            this.animCount--;
+            if(this.animCount < 0){
+                this.frameIndex++;
+                if(this.frameIndex >= this.animFrames.length){
+                    this.frameIndex = 0;
+                }
+                this.animCount = this.animStart;
+            }
+        }
+
+        ambiantMove(){
+            this.ambiantCounter--;
+            if(this.ambiantCounter < 0){
+                this.off = this.off + 0.1;
+                this.sign = Math.round(p.random(-1, 1));
+                this.x = this.x + (this.sign * p.noise(this.off));
+                this.y = this.y + (this.sign * p.noise(this.off));
+                console.log(this.x);
+                if(this.ambiantCounter < -20){
+                    this.x = this.baseX;
+                    this.y = this.baseY;
+                    this.ambiantCounter = this.ambiantStart;
+                    this.off = 0;
                 }
             }
         }
