@@ -5,7 +5,6 @@ let sketch = function (p) {
     //to do
     //dynamic player placement
     //story lol
-    //don't run animation code unless on screen
 
 
     var grid = [];
@@ -91,10 +90,13 @@ let sketch = function (p) {
 
         visibleGrid[player.gridX][player.gridY].shouldDraw = false;
         p.textFont(font);
+        p.angleMode(p.DEGREES);
+        p.rectMode(p.CENTER);
     };
 
     p.draw = function () {
         p.clear();
+        //p.translate(p.width, p.height);
         p.textSize(24);
         // for(var x = 0; x < gridWidth; x++){
         //     for(var y = 0; y < gridHeight; y++){
@@ -293,6 +295,8 @@ let sketch = function (p) {
                 visibleGrid[x][y] = grid[gridXVisible + x][gridYVisible + y];
                 visibleGrid[x][y].x = x * cellOffset + gridOffset;
                 visibleGrid[x][y].y = y * cellOffset + gridOffset;
+                visibleGrid[x][y].baseX = visibleGrid[x][y].x;
+                visibleGrid[x][y].baseY = visibleGrid[x][y].y;
             }
         }
     }
@@ -326,13 +330,18 @@ let sketch = function (p) {
             this.ambiantStart;
             this.ambiantCounter;
 
+            this.sheerAmt = 0; 
+            this.sheerSpd = 1;
+            this.sheerStart = p.random(3, 5);
+            this.sheerTime = this.sheerStart;
+
             this.dialog;
             if (this.img == ".") {
                 this.col = p.color(100, 100, 100);
             } else if(this.img == ','){
                 this.col = p.color(50, 168, 82);
                 this.hasAmbiant = true;
-                this.ambiantStart = p.random(100, 200);
+                this.ambiantStart = p.random(200, 500);
                 this.ambiantCounter = this.ambiantStart;
                 this.off = 0;
             } else if(this.img == '#'){
@@ -341,6 +350,7 @@ let sketch = function (p) {
                 this.overlapImg = '≥';
             } else if(this.img == '|'){
                 this.col = p.color(100, 100, 100);
+                this.wall = true;
             } else if(this.img == '-'){
                 this.col = p.color(107, 76, 57);
             } else if(this.img == '〰'){
@@ -382,15 +392,33 @@ let sketch = function (p) {
 
         display() {
             if (this.shouldDraw) {
-                    p.fill(this.col);
+                p.fill(this.col);
                 if(this.hasAnim){
                     this.animate();
                     p.text(this.animFrames[this.frameIndex], this.x, this.y);
                 } else{
-                    p.text(this.img, this.x, this.y);
+                    if(this.hasOverlap){
+                        p.push();
+                        this.x = 0;
+                        this.y = 0;
+                        p.translate(this.baseX, this.baseY);
+                        p.shearX(this.sheerAmt);
+                        this.sheerTime--;
+                        if(this.sheerTime < 0){
+                            this.sheerAmt += this.sheerSpd;
+                            if(this.sheerAmt > 5 || this.sheerAmt < -5){
+                                this.sheerSpd = -this.sheerSpd;
+                            }
+                            this.sheerTime = this.sheerStart;
+                        }
+                        p.text(this.img, this.x, this.y);
+                        p.pop();
+                    } else{
+                        p.text(this.img, this.x, this.y);
+                    }
                 }
                 if(this.hasAmbiant){
-                    this.ambiantMove();
+                   // this.ambiantMove();
                 }
                 if(this.hasOverlap && this.overlapCount > 0){
                     this.overlapTimer();
@@ -438,7 +466,6 @@ let sketch = function (p) {
                 this.sign = Math.round(p.random(-1, 1));
                 this.x = this.x + (this.sign * p.noise(this.off));
                 this.y = this.y + (this.sign * p.noise(this.off));
-                console.log(this.x);
                 if(this.ambiantCounter < -20){
                     this.x = this.baseX;
                     this.y = this.baseY;
