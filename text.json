@@ -1,18 +1,23 @@
-{
-    "dialog":{
-       "scene":[
-          {
-             "name":"$",
-             "line":"Picked up a umbrella."
-          },
-          {
+ {
+   "characters":[
+         {
             "name":"@",
-            "line":"Go outside."
-          },
-          {
-            "name":"Π",
-            "line":"The door is locked."
-          }
-       ]
-    }
- }
+            "dialog":[
+               {
+                  "index": 0,
+                  "line": "Do you want to go outside?",
+                  "choices": ["Yes", "No"],
+                  "answers": ["Great", "Too bad"],
+                  "nextScene": 1
+               },
+               {
+                  "index": 1,
+                  "line": "Go ahead, go outside",
+                  "choices": [],
+                  "answers": [],
+                  "nextScene": 1
+               }
+            ]
+         }
+   ]  
+}
