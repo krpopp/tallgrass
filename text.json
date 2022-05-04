@@ -8,6 +8,7 @@
                   "line": "Do you want to go outside?",
                   "choices": ["Yes", "No"],
                   "answers": ["Great", "Too bad"],
+                  "needItem":"",
                   "nextScene": 1
                },
                {
@@ -15,7 +16,55 @@
                   "line": "Go ahead, go outside",
                   "choices": [],
                   "answers": [],
+                  "needItem":"",
                   "nextScene": 1
+               }
+            ]
+         },
+         {
+            "name":"R",
+            "dialog":[
+               {
+                  "index": 0,
+                  "line": "Have you seen my key?",
+                  "choices": ["Yes", "No"],
+                  "answers": ["Oh great. I'll unlock my door.", "Well, if you do let me know."],
+                  "needItem": "key",
+                  "nextScene": 1
+               },
+               {
+                  "index": 1,
+                  "line": "Um, it's kind of weird that you went in my house.",
+                  "choices": [],
+                  "answers": [],
+                  "needItem":"",
+                  "nextScene": 1
+               }
+            ]
+         },
+         {
+            "name":"$",
+            "dialog":[
+               {
+                  "index": 0,
+                  "line": "I picked up a key.",
+                  "choices": [],
+                  "answers": [],
+                  "needItem": "",
+                  "nextScene": 0
+               }
+            ]
+         },
+         {
+            "name":"k",
+            "dialog":[
+               {
+                  "index": 0,
+                  "line": "Oh, welcome to my house.",
+                  "choices": [],
+                  "answers": [],
+                  "needItem": "",
+                  "nextScene": 0
                }
             ]
          }

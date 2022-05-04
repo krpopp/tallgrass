@@ -3,11 +3,19 @@ let sketch = function (p) {
 
 
     //to do
-    //dynamic player placement(???)
     //story lol
-    //text color
-    //dialog font should be different than environmental font
     //i think there's leaks or smthg
+    //smooth scroll on text
+    //scroll bar on text
+    //inventory
+    //help
+    //intro text
+    //level test with various things to do
+        //take item, put in inventory
+        //give item in inventory to NPC
+        //NPC completes action
+    //moving NPCs?
+    //think about sound
 
 
     var grid = [];
@@ -46,6 +54,7 @@ let sketch = function (p) {
 
     var showDialog = false;
     var dialogToShow = [];
+    var dialogToShowColor = [];
     var dialogX = 800;
     var dialogY = 50;
     var dialogOffset = 50;
@@ -53,6 +62,7 @@ let sketch = function (p) {
     var dialogScreenLimit = 13;
 
     var font;
+    var textFont;
 
     var mustAnswer = false;
     var talkCellX = -10;
@@ -64,6 +74,7 @@ let sketch = function (p) {
         text = p.loadJSON('text.json');
         wallSheet = p.loadImage('assets/walls.png');
         font = p.loadFont('myprime2.ttf');
+        textFont = p.loadFont('baseprime.ttf');
     }
 
     p.setup = function () {
@@ -120,8 +131,30 @@ let sketch = function (p) {
             }
         }
 
+        //player = new p.Player(visibleGrid[playerStartX][playerStartY].x, visibleGrid[playerStartX][playerStartY].y, "O", playerStartX, playerStartY);
+        
+        var yCheck = maxY;
+        var tempPlayerY = playerStartY;
+        while(tempPlayerY >= yCheck){
+            //if(playerStartY > yCheck){
+                playerStartY--;
+            //}
+            gridYVisible++;
+            yCheck++;
+        }
+        
+        var xCheck = maxX;
+        var tempPlayerX = playerStartX;
+        while(tempPlayerX >= xCheck){
+            //if(playerStartX > xCheck){
+                playerStartX--;
+            //}
+            gridXVisible++;
+            xCheck++;
+        }
 
         player = new p.Player(visibleGrid[playerStartX][playerStartY].x, visibleGrid[playerStartX][playerStartY].y, "O", playerStartX, playerStartY);
+        p.adjustVisibleGrid();
         // var playerVisStartX;
         // if (playerStartX >= gridWidthVisible) {
         //     gridXVisible = p.adjustToPlayerPosX();
@@ -141,9 +174,9 @@ let sketch = function (p) {
         // }
 
         //player = new p.Player(visibleGrid[playerStartX][playerStartY].x, visibleGrid[playerStartX][playerStartY].y, "O", playerStartX, playerStartY);
-        p.adjustVisibleGrid();
+        //console.log(player.gridY);
+        //p.adjustVisibleGrid();
         visibleGrid[player.gridX][player.gridY].shouldDraw = false;
-        p.textFont(font);
         p.angleMode(p.DEGREES);
         p.rectMode(p.CENTER);
     };
@@ -151,6 +184,7 @@ let sketch = function (p) {
     p.draw = function () {
         p.clear();
         p.textSize(24);
+        p.textFont(font);
         for (var x = 0; x < gridWidthVisible; x++) {
             for (var y = 0; y < gridHeightVisible; y++) {
                 visibleGrid[x][y].display();
@@ -160,7 +194,9 @@ let sketch = function (p) {
         p.fill(255);
         player.display();
         if (showDialog) {
+            p.textFont(textFont);
             for (var i = 0; i < dialogToShow.length; i++) {
+                p.fill(dialogToShowColor[i]);
                 dialogToShow[i].display();
             }
         }
@@ -317,7 +353,7 @@ let sketch = function (p) {
             }
         }
         if (_dir > 0 && gridXVisible > 0) {
-            if (maxX + gridXVisible < gridXLimit) {
+            if (maxX + gridXVisible < gridXLimit && _newX > maxX) {
                 gridXVisible++;
                 return false;
             } else {
@@ -346,7 +382,7 @@ let sketch = function (p) {
             }
         }
         if (_dir > 0 && gridYVisible > 0) {
-            if (maxY + gridYVisible < gridYLimit) {
+            if (maxY + gridYVisible < gridYLimit && _newY > maxY) {
                 gridYVisible++;
                 return false;
             } else {
@@ -370,8 +406,11 @@ let sketch = function (p) {
         var choices = visibleGrid[_cellX][_cellY].choices;
         dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), "-----------------"));
         dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), plsText));
+        dialogToShowColor.push(p.color(255));
+        dialogToShowColor.push(visibleGrid[_cellX][_cellY].col);
         if (choices.length > 0) {
             dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), choices[0] + " [1] or " + choices[1] + " [2]"));
+            dialogToShowColor.push(p.color(255));
             talkCellX = _cellX;
             talkCellY = _cellY;
             mustAnswer = true;
@@ -393,7 +432,8 @@ let sketch = function (p) {
         var answerText = visibleGrid[talkCellX][talkCellY].answers[_index];
         dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), choiceText));
         dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), answerText));
-
+        dialogToShowColor.push(p.color(255));
+        dialogToShowColor.push(visibleGrid[talkCellX][talkCellY].col);
         if (dialogToShow[dialogToShow.length - 1].y > p.height - dialogOffset) {
             dialogY = p.height - (dialogToShow.length * dialogOffset);
             for (var i = 0; i < dialogToShow.length; i++) {
@@ -406,7 +446,7 @@ let sketch = function (p) {
 
     p.addMustAnswerDialog = function () {
         dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), "You must answer the question."));
-
+        dialogToShowColor.push(visibleGrid[talkCellX][talkCellY].col);
         if (dialogToShow[dialogToShow.length - 1].y > p.height - dialogOffset) {
             dialogY = p.height - (dialogToShow.length * dialogOffset);
             for (var i = 0; i < dialogToShow.length; i++) {
