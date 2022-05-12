@@ -1,0 +1,35 @@
+{
+    "items":[
+          {
+             "object":"Π",
+             "dialog":[
+                {
+                   "index": 0,
+                   "line": "The door is locked.",
+                   "name": "door",
+                   "needItem":"$",
+                   "nextScene": 1
+                },
+                {
+                   "index": 1,
+                   "line": "I unlock the door.",
+                   "name": "door",
+                   "needItem":"",
+                   "nextScene": 1
+                }
+             ]
+          },
+          {
+            "object":"$",
+            "dialog":[
+               {
+                  "index": 0,
+                  "line": "I pick up a key.",
+                  "name": "key",
+                  "needItem":"",
+                  "nextScene": 0
+               }
+            ]
+         }
+    ]  
+ }

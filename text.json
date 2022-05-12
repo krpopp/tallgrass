@@ -29,7 +29,7 @@
                   "line": "Have you seen my key?",
                   "choices": ["Yes", "No"],
                   "answers": ["Oh great. I'll unlock my door.", "Well, if you do let me know."],
-                  "needItem": "key",
+                  "needItem": "$",
                   "nextScene": 1
                },
                {

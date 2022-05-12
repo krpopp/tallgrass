@@ -16,6 +16,9 @@ let sketch = function (p) {
         //NPC completes action
     //moving NPCs?
     //think about sound
+    //differentiate b/t diff sounds
+    //better way to set up characters
+    //worried about usage of visible grid vs grid
 
 
     var grid = [];
@@ -44,8 +47,8 @@ let sketch = function (p) {
     var maxY;
 
     var player;
-    var playerStartX = 15;
-    var playerStartY = 15;
+    var playerStartX = 33;
+    var playerStartY = 4;
 
     var upKey = 'w';
     var downKey = 's';
@@ -63,15 +66,19 @@ let sketch = function (p) {
 
     var font;
     var textFont;
+    var itemText;
 
     var mustAnswer = false;
     var talkCellX = -10;
     var talkCellY = -10;
 
 
+    var inventory = [];
+
     p.preload = function () {
-        level = p.loadTable('leveltest.csv');
+        level = p.loadTable('level1.csv');
         text = p.loadJSON('text.json');
+        itemText = p.loadJSON('itemtext.json');
         wallSheet = p.loadImage('assets/walls.png');
         font = p.loadFont('myprime2.ttf');
         textFont = p.loadFont('baseprime.ttf');
@@ -95,6 +102,8 @@ let sketch = function (p) {
         maxX = gridWidthVisible * .7;
         maxY = gridHeightVisible * .7;
 
+        console.log(inventory.length);
+
         gridXLimit = gridWidth - (gridWidthVisible - maxX);
         gridYLimit = gridHeight - (gridHeightVisible - maxY);
 
@@ -103,6 +112,7 @@ let sketch = function (p) {
             for (var y = 0; y < gridHeight; y++) {
                 switch (level.get(y, x)) {
                     case '@':
+                    case 'R':
                         grid[x][y] = new p.Character(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
                         break;
                     case '#':
@@ -116,6 +126,12 @@ let sketch = function (p) {
                         break;
                     case "}":
                         grid[x][y] = new p.Water(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
+                        break;
+                    case "Π":
+                        grid[x][y] = new p.Door(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
+                        break;
+                    case "$":
+                        grid[x][y] = new p.PickAbleItem(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
                         break;
                     default:
                         grid[x][y] = new p.Cell(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
@@ -241,9 +257,6 @@ let sketch = function (p) {
                         }
                     }
                 }
-                if (colVal == 3) {
-                    grid[player.gridX][player.gridY].isCollected();
-                }
                 p.adjustVisibleGrid();
             }
         }
@@ -256,6 +269,10 @@ let sketch = function (p) {
                     p.addAnswerDialog(1);
                 }
             }
+        }
+
+        if(p.key == 'i' || p.key == 'I'){
+            p.addInventory();
         }
     }
 
@@ -316,14 +333,37 @@ let sketch = function (p) {
         if (visibleGrid[_cellX][_cellY].wall) {
             //p.addDialog(_cellX, _cellY);
             return 1;
-        } else if (visibleGrid[_cellX][_cellY].interact || visibleGrid[_cellX][_cellY].door) {
+        } else if(visibleGrid[_cellX][_cellY].door){
+            if(visibleGrid[_cellX][_cellY].neededItem != 0){
+                if(inventory.length == 0){
+                    console.log("no inventory");
+                } else{
+                    for(var i = 0; i < inventory.length; i++){
+                        console.log(inventory[i].img);
+                        console.log(visibleGrid[_cellX][_cellY].neededItem);
+                        if(inventory[i].img == visibleGrid[_cellX][_cellY].neededItem){
+                            visibleGrid[_cellX][_cellY].adjustDialog();
+                            p.addItemDialog(_cellX, _cellY);
+                            visibleGrid[_cellX][_cellY].openDoor();
+                            console.log("i have it");
+                        } else{
+                            console.log("i don't have it");
+                        }
+                    }
+                }
+            } else{
+                p.addItemDialog(_cellX, _cellY);
+            }
+        }else if (visibleGrid[_cellX][_cellY].interact) {
             p.addDialog(_cellX, _cellY);
             if (visibleGrid[_cellX][_cellY].hasBump) {
                 visibleGrid[_cellX][_cellY].doBump = true;
             }
             return 2;
         } else if (visibleGrid[_cellX][_cellY].collect) {
-            p.addDialog(_cellX, _cellY);
+            p.addItemDialog(_cellX, _cellY);
+            inventory.push(new p.InventoryItem(visibleGrid[_cellX][_cellY].img, visibleGrid[_cellX][_cellY].name));
+            visibleGrid[_cellX][_cellY].isCollected();
             return 3;
         } else if (visibleGrid[_cellX][_cellY].hasOverlap) {
             visibleGrid[_cellX][_cellY].overlap();
@@ -401,6 +441,22 @@ let sketch = function (p) {
         }
     }
 
+    p.addItemDialog = function(_cellX, _cellY){
+        var plsText = visibleGrid[_cellX][_cellY].dialog;
+        dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), "-----------------"));
+        dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), plsText));
+        dialogToShowColor.push(p.color(255));
+        dialogToShowColor.push(visibleGrid[_cellX][_cellY].col);
+
+        if (dialogToShow[dialogToShow.length - 1].y > p.height - dialogOffset) {
+            dialogY = p.height - (dialogToShow.length * dialogOffset);
+            for (var i = 0; i < dialogToShow.length; i++) {
+                dialogToShow[i].y = dialogY + (i * dialogOffset);
+            }
+        }
+        showDialog = true;
+    }
+
     p.addDialog = function (_cellX, _cellY) {
         var plsText = visibleGrid[_cellX][_cellY].dialog;
         var choices = visibleGrid[_cellX][_cellY].choices;
@@ -455,6 +511,27 @@ let sketch = function (p) {
         }
     }
 
+    p.addInventory = function(){
+        var inventoryText = "I have: ";
+        if(inventory.length > 0){
+            for(var i = 0; i <= inventory.length; i++){
+                if(i == inventory.length){
+                    inventoryText = inventoryText + ".";
+                } else if(i == 0){
+                    inventoryText = inventoryText + " " + inventory[i].name;
+                }else{
+                    inventoryText = inventoryText + ", " + inventory[i].name;
+                }
+            }
+        } else{
+            inventoryText = inventoryText + "nothing.";
+        }
+
+        dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), inventoryText));
+        dialogToShowColor.push(p.color(255));
+        showDialog = true; 
+    }
+
     p.adjustVisibleGrid = function () {
         for (var x = 0; x < gridWidthVisible; x++) {
             for (var y = 0; y < gridHeightVisible; y++) {
@@ -476,9 +553,6 @@ let sketch = function (p) {
             this.shouldDraw = true;
 
             this.wall = false;
-            this.interact = false;
-            this.collect = false;
-            this.door = false;
 
             this.baseX = _x;
             this.baseY = _y;
@@ -495,17 +569,8 @@ let sketch = function (p) {
             } else if (this.img == '█') {
                 this.col = p.color(79, 47, 45);
                 this.wall = true;
-            } else if (this.img == '$') {
-                this.col = p.color(0, 0, 255);
-                //this.dialog = this.assignDialog();
-                this.collect = true;
-            } else if (this.img == 'Π') {
-                this.col = p.color(176, 148, 63);
-                //this.dialog = this.assignDialog();
-                this.door = true;
             } else if (this.img == '=') {
                 this.col = p.color(0, 148, 0);
-                //this.dialog = this.assignDialog();
                 this.wall = true;
             } else {
                 this.col = p.color(255, 255, 255);
@@ -517,13 +582,6 @@ let sketch = function (p) {
                 p.fill(this.col);
                 p.text(this.img, this.x, this.y);
             }
-        }
-
-
-        isCollected() {
-            this.img = "#";
-            this.col = p.color(100, 100, 100);
-            this.collect = false;
         }
 
     }
@@ -661,6 +719,79 @@ let sketch = function (p) {
         }
     }
 
+    p.Door = class extends p.Cell{
+        constructor(_x, _y, _img){
+            super(_x, _y, _img);
+            this.col = p.color(176, 148, 63);
+            this.door = true;
+            this.allDialog = [];
+            this.dialog;
+            this.neededItem = 0;
+
+            this.storyIndex = 0;
+            this.dialog = this.assignDialog();
+        }
+
+        assignDialog() {
+            for (var i = 0; i < itemText.items.length; i++) {
+                if (this.img == itemText.items[i].object) {
+                    this.allDialog = itemText.items[i].dialog;
+                    this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
+                    this.neededItem = itemText.items[i].dialog[this.storyIndex].needItem;
+                    return itemText.items[i].dialog[this.storyIndex].line;
+                }
+            }
+        }
+
+        adjustDialog() {
+            this.storyIndex = this.nextScene;
+            this.dialog = this.allDialog[this.storyIndex].line;
+            console.log(this.dialog);
+            this.nextScene = this.allDialog[this.storyIndex].nextScene;
+        }
+
+        openDoor(){
+            this.col = p.color(100, 100, 100);
+            this.door = false;
+            this.img = ".";
+            this.dialog = "";
+        }
+    }
+
+    p.PickAbleItem = class extends p.Cell{
+        constructor(_x, _y, _img){
+            super(_x, _y, _img);
+            this.col = p.color(176, 148, 63);
+            this.collect = true;
+            this.allDialog = [];
+            this.dialog;
+            this.neededItem;
+            this.name;
+            this.col = p.color(0, 0, 255);
+            this.storyIndex = 0;
+            this.dialog = this.assignDialog();
+        }
+
+        assignDialog() {
+            for (var i = 0; i < itemText.items.length; i++) {
+                if (this.img == itemText.items[i].object) {
+                    this.allDialog = itemText.items[i].dialog;
+                    this.name = itemText.items[i].dialog[this.storyIndex].name;
+                    this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
+                    this.neededItem = itemText.items[i].dialog[this.storyIndex].neededItem;
+                    return itemText.items[i].dialog[this.storyIndex].line;
+                }
+            }
+        }
+        
+        isCollected() {
+            this.img = ".";
+            this.col = p.color(100, 100, 100);
+            this.collect = false;
+        }
+
+    }
+
     p.Character = class extends p.Cell {
         constructor(_x, _y, _img) {
             super(_x, _y, _img);
@@ -679,7 +810,12 @@ let sketch = function (p) {
 
             this.off = 0;
 
-            this.col = p.color(255, 0, 0);
+            if(this.img == '@'){
+                this.col = p.color(255, 0, 0);
+            }  else if (this.img == 'R'){
+                this.col = p.color(171, 235, 52);
+            }
+            
             this.dialog = this.assignDialog();
             this.interact = true;
             this.hasBump = true;
@@ -734,6 +870,15 @@ let sketch = function (p) {
             }
             this.dialog = this.allDialog[this.storyIndex].line;
             this.nextScene = this.allDialog[this.storyIndex].nextScene;
+        }
+
+        
+    }
+
+    p.InventoryItem = class{
+        constructor(_img, _name){
+            this.img = _img;
+            this.name = _name;
         }
     }
 
