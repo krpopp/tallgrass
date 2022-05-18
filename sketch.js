@@ -5,7 +5,6 @@ let sketch = function (p) {
     //story lol
     //i think there's leaks or smthg
     //smooth scroll on text
-    //scroll bar on text
     //inventory
     //help
     //intro text
@@ -19,7 +18,7 @@ let sketch = function (p) {
     //better way to set up characters
     //worried about usage of visible grid vs grid
     //diff b/t items w/ same character
-    //jump to end of dialog list when new line
+    //need to check items to move forward in character's dialog 
     //#endregion
 
     //#region Variable definitions
@@ -51,31 +50,21 @@ let sketch = function (p) {
     var gridWidthVisible = 30;
     /** Height of visible grid */
     var gridHeightVisible = 30;
-    /** Grid x starting point for the visible grid. */
-    var gridXVisible = 0;
-    /** Grid y starting point for the visible grid. */
-    var gridYVisible = 0;
+    /** Top left starting point for the visible grid */
+    var gridVisiblePos = p.createVector(0, 0);
 
-    /** Rightmost boarder that the camera will stop moving at. */
-    var gridXLimit;
-    /** Bottommost boarder that the camera will stop moving at. */
-    var gridYLimit;
+    /** Fartherest outer bounds the camera can move */
+    var gridLimit = p.createVector(0, 0);
 
-    /** Inner left boarder of where camera should start moving. */
-    var minX;
-    /** Inner top boarder of where camera should start moving. */
-    var minY;
-    /** Inner right boarder of where camera should start moving. */
-    var maxX;
-    /** Inner bottom boarder of where camera should start moving. */
-    var maxY;
+    /** Min inner boarder of where camera should start moving. */
+    var minInnerBoarder = p.createVector(0, 0);
+    /** Max inner boarder of where camera should start moving. */
+    var maxInnerBoarder = p.createVector(0, 0);
 
     /** Object of player. */
     var player;
-    /** X position the player begins at. */
-    var playerStartX = 33;
-    /** Y position the player begins at. */
-    var playerStartY = 4;
+    /** Cell player starts at */
+    var playerStartPos = p.createVector(33, 4);
 
     var upKey = 'w';
     var downKey = 's';
@@ -86,10 +75,8 @@ let sketch = function (p) {
     var showDialog = true;
     /** Array of all dialog text to draw. */
     var dialogToShow = [];
-    /** X position the dialog starts at. */
-    var dialogX = 800;
-    /** Y position the dialog starts at. */
-    var dialogY = 50;
+    /** Top left start of dialog box */
+    var dialogStart = p.createVector(800, 50);
     /** Y offset for each line of dialog. */
     var dialogOffset = 50;
 
@@ -100,16 +87,21 @@ let sketch = function (p) {
     var font;
     /** Font of dialog. */
     var textFont;
-    
+
     /** Indicates if the player needs to answer a question before resuming. */
     var mustAnswer = false;
-    /** Reference to the x position of the character the player is currently talking to. */
-    var talkCellX = -10;
-    /** Reference to the y position of the character the player is currently talking to. */
-    var talkCellY = -10;
+    /** Reference to the cell position the player is talking to. */
+    var talkCellPos = p.createVector(-10, -10);
 
     /** Array of all the items the player is holding. */
     var inventory = [];
+
+    /** scroll bar width */
+    var scrollWidth = 10;
+    /** scroll bar height */
+    var scrollHeight = 0;
+    /** scroll bar start position */
+    var scrollPos = p.createVector(0, 0);
 
     //#endregion
 
@@ -124,6 +116,8 @@ let sketch = function (p) {
     p.setup = function () {
         p.createCanvas(1700, 800);
 
+        scrollPos = p.createVector(p.width - 500, 0);
+
         gridWidth = level.getColumnCount();
         gridHeight = level.getRowCount();
 
@@ -137,45 +131,16 @@ let sketch = function (p) {
         //#endregion
 
         //#region Setting the camera bounds.
-        minX = gridWidthVisible * .3;
-        minY = gridHeightVisible * .3;
-        maxX = gridWidthVisible * .7;
-        maxY = gridHeightVisible * .7;
-        gridXLimit = gridWidth - (gridWidthVisible - maxX);
-        gridYLimit = gridHeight - (gridHeightVisible - maxY);
+        minInnerBoarder = p.createVector(gridWidthVisible * .3, gridHeightVisible * .3);
+        maxInnerBoarder = p.createVector(gridWidthVisible * .7, gridHeightVisible * .7);
+        gridLimit = p.createVector(gridWidth - (gridWidthVisible - maxInnerBoarder.x), gridHeight - (gridHeightVisible - maxInnerBoarder.y));
         //#endregion
 
         //loop through the grid to find what each cell is
         for (var x = 0; x < gridWidth; x++) {
             grid[x] = [];
             for (var y = 0; y < gridHeight; y++) {
-                switch (level.get(y, x)) {
-                    case '@':
-                    case 'R':
-                        grid[x][y] = new p.Character(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    case '#':
-                        grid[x][y] = new p.TallGrass(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    case ',':
-                        grid[x][y] = new p.ShortGrass(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    case "{":
-                        grid[x][y] = new p.Water(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    case "}":
-                        grid[x][y] = new p.Water(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    case "Π":
-                        grid[x][y] = new p.Door(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    case "$":
-                        grid[x][y] = new p.PickAbleItem(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                    default:
-                        grid[x][y] = new p.Cell(x * cellOffset + gridOffset, y * cellOffset + gridOffset, level.get(y, x));
-                        break;
-                }
+                p.setCell(x, y, p.createVector(x * cellOffset + gridOffset, y * cellOffset + gridOffset), level.get(y, x));
             }
         }
 
@@ -188,27 +153,27 @@ let sketch = function (p) {
         }
 
         //#region adjust the camera's start position and player's start positon if it's not within the initial visible grid
-        var yCheck = maxY;
-        var tempPlayerY = playerStartY;
-        while(tempPlayerY >= yCheck){
-            playerStartY--;
-            gridYVisible++;
+        var yCheck = maxInnerBoarder.y;
+        var tempPlayerY = playerStartPos.y;
+        while (tempPlayerY >= yCheck) {
+            playerStartPos.y--;
+            gridVisiblePos.y++;
             yCheck++;
         }
-        var xCheck = maxX;
-        var tempPlayerX = playerStartX;
-        while(tempPlayerX >= xCheck){
-            playerStartX--;
-            gridXVisible++;
+        var xCheck = maxInnerBoarder.x;
+        var tempPlayerX = playerStartPos.x;
+        while (tempPlayerX >= xCheck) {
+            playerStartPos.x--;
+            gridVisiblePos.x++;
             xCheck++;
         }
         //#endregion
 
-        player = new p.Player(visibleGrid[playerStartX][playerStartY].x, visibleGrid[playerStartX][playerStartY].y, "O", playerStartX, playerStartY);
+        //player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].x, visibleGrid[playerStartPos.x][playerStartPos.y].y, "O", playerStartPos.x, playerStartPos.y);
+        player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].pos.x, visibleGrid[playerStartPos.x][playerStartPos.y].pos.y, "O", playerStartPos);
         p.adjustVisibleGrid();
-        visibleGrid[player.gridX][player.gridY].shouldDraw = false;
+        visibleGrid[player.gridPos.x][player.gridPos.y].shouldDraw = false;
         p.angleMode(p.DEGREES);
-        p.rectMode(p.CENTER);
     };
 
     p.draw = function () {
@@ -231,6 +196,10 @@ let sketch = function (p) {
             p.textFont(textFont);
             for (var i = 0; i < dialogToShow.length; i++) {
                 dialogToShow[i].display();
+            }
+            if (dialogToShow.length >= dialogScreenLimit) {
+                p.fill(255);
+                p.rect(scrollPos.x, scrollPos.y, scrollWidth, scrollHeight);
             }
         }
     };
@@ -256,12 +225,12 @@ let sketch = function (p) {
                     moveX = -1;
                     break;
             }
-            if (p.checkOuterBounds(player.gridX + moveX, player.gridY + moveY)) {
-                var colVal = p.checkColl(player.gridX + Math.sign(moveX), player.gridY + Math.sign(moveY));
+            if (p.checkOuterBounds(player.gridPos.x + moveX, player.gridPos.y + moveY)) {
+                var colVal = p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
                 if (Math.sign(moveX) != 0 || Math.sign(moveY) != 0) {
                     if (colVal == 0 || colVal == 3 || colVal == 4) {
-                        p.switchVisibility(player.gridX, player.gridY, player.gridX + moveX, player.gridY + moveY);
-                        if (p.checkInnerBoundsX(player.gridX + moveX, player.gridY + moveY, moveX) || p.checkInnerBoundsY(player.gridX + moveX, player.gridY + moveY, moveY)) {
+                        p.switchVisibility(player.gridPos.x, player.gridPos.y, player.gridPos.x + moveX, player.gridPos.y + moveY);
+                        if (p.checkInnerBoundsX(player.gridPos.x + moveX, player.gridPos.y + moveY, moveX) || p.checkInnerBoundsY(player.gridPos.x + moveX, player.gridPos.y + moveY, moveY)) {
                             player.move(moveX * cellOffset, moveY * cellOffset);
                         }
                     }
@@ -280,31 +249,61 @@ let sketch = function (p) {
             }
         }
 
-        if(p.key == 'i' || p.key == 'I'){
+        if (p.key == 'i' || p.key == 'I') {
             p.addInventory();
         }
     }
 
     p.mouseWheel = function (event) {
         if (showDialog) {
-            if (event.delta < 0) {
+            if (event.delta < 0) { //down
                 if (dialogToShow.length > dialogScreenLimit) {
-                    dialogY += event.delta;
-                    if (dialogToShow[dialogToShow.length - dialogScreenLimit].y < 50) {
-                        dialogY = 50 - ((dialogToShow.length - dialogScreenLimit) * dialogOffset);
+                    if (dialogToShow[dialogToShow.length - dialogScreenLimit].pos.y > 170) {
+                        dialogStart.y += event.delta;
+                        scrollPos.y -= event.delta;
                     }
                 }
-            } else if (event.delta > 0) {
+            } else if (event.delta > 0) { //up
                 if (dialogToShow.length > dialogScreenLimit) {
-                    dialogY += event.delta;
-                    if (dialogToShow[0].y > 50) {
-                        dialogY = 50;
+                    if (dialogToShow[0].pos.y < 50) {
+                        dialogStart.y += event.delta;
+                        scrollPos.y -= event.delta;
                     }
                 }
             }
             for (var i = 0; i < dialogToShow.length; i++) {
-                dialogToShow[i].y = dialogY + (i * dialogOffset);
+                dialogToShow[i].pos.y = dialogStart.y + (i * dialogOffset);
             }
+        }
+    }
+
+    p.setCell = function (_x, _y, _pos, _img) {
+        switch (_img) {
+            case '@':
+            case 'R':
+                grid[_x][_y] = new p.Character(_pos, _img);
+                break;
+            case '#':
+                grid[_x][_y] = new p.TallGrass(_pos, _img);
+                break;
+            case ',':
+                grid[_x][_y] = new p.ShortGrass(_pos, _img);
+                break;
+            case "{":
+                grid[_x][_y] = new p.Water(_pos, _img);
+                break;
+            case "}":
+                grid[_x][_y] = new p.Water(_pos, _img);
+                break;
+            case "Π":
+                grid[_x][_y] = new p.Door(_pos, _img);
+                break;
+            case "$":
+                grid[_x][_y] = new p.PickAbleItem(_pos, _img);
+                break;
+            default:
+                grid[_x][_y] = new p.Cell(_pos, _img);
+                break;
         }
     }
 
@@ -320,7 +319,7 @@ let sketch = function (p) {
             p.checkInventory(_cellX, _cellY); //check if you need an item to go past
             return 1; //don't go into that cell
         } else if (visibleGrid[_cellX][_cellY].interact) { //if it's a cell you can interact with
-            p.addDialog(_cellX, _cellY); 
+            p.addDialog(_cellX, _cellY);
             if (visibleGrid[_cellX][_cellY].hasBump) {
                 visibleGrid[_cellX][_cellY].doBump = true;
             }
@@ -339,41 +338,41 @@ let sketch = function (p) {
     }
 
     /** checks if the cell needs an item to work */
-    p.checkInventory = function(_cellX, _cellY){
-        if(visibleGrid[_cellX][_cellY].neededItem != 0){ //if the cell needs an item
-            for(var i = 0; i < inventory.length; i++){ //check if the player has it
-                if(inventory[i].img == visibleGrid[_cellX][_cellY].neededItem){
+    p.checkInventory = function (_cellX, _cellY) {
+        if (visibleGrid[_cellX][_cellY].neededItem != 0) { //if the cell needs an item
+            for (var i = 0; i < inventory.length; i++) { //check if the player has it
+                if (inventory[i].img == visibleGrid[_cellX][_cellY].neededItem) {
                     visibleGrid[_cellX][_cellY].adjustDialog();
                     p.addItemDialog(_cellX, _cellY);
                     visibleGrid[_cellX][_cellY].openDoor();
-                } 
+                }
             }
-        } 
+        }
     }
 
     /** checks if the player has met the camera bounds on the X */
     p.checkInnerBoundsX = function (_newX, _newY, _dir) {
-        if (_dir < 0 && gridXVisible == 0) {
+        if (_dir < 0 && gridVisiblePos.x == 0) {
             return true;
-        } else if (_dir < 0 && gridXVisible > 0) {
-            if (_newX < minX) {
-                gridXVisible--;
+        } else if (_dir < 0 && gridVisiblePos.x > 0) {
+            if (_newX < minInnerBoarder.x) {
+                gridVisiblePos.x--;
                 return false;
             } else {
                 return true;
             }
         }
-        if (_dir > 0 && gridXVisible == 0) {
-            if (_newX < maxX) {
+        if (_dir > 0 && gridVisiblePos.x == 0) {
+            if (_newX < maxInnerBoarder.x) {
                 return true;
-            } else if (_newX >= maxX) {
-                gridXVisible++;
+            } else if (_newX >= maxInnerBoarder.x) {
+                gridVisiblePos.x++;
                 return false;
             }
         }
-        if (_dir > 0 && gridXVisible > 0) {
-            if (maxX + gridXVisible < gridXLimit && _newX > maxX) {
-                gridXVisible++;
+        if (_dir > 0 && gridVisiblePos.x > 0) {
+            if (maxInnerBoarder.x + gridVisiblePos.x < gridLimit.x && _newX > maxInnerBoarder.x) {
+                gridVisiblePos.x++;
                 return false;
             } else {
                 return true;
@@ -383,27 +382,27 @@ let sketch = function (p) {
 
     /** checks if the player has met the camera bounds on the Y*/
     p.checkInnerBoundsY = function (_newX, _newY, _dir) {
-        if (_dir < 0 && gridYVisible == 0) {
+        if (_dir < 0 && gridVisiblePos.y == 0) {
             return true;
-        } else if (_dir < 0 && gridYVisible > 0) {
-            if (_newY < minY) {
-                gridYVisible--;
+        } else if (_dir < 0 && gridVisiblePos.y > 0) {
+            if (_newY < minInnerBoarder.y) {
+                gridVisiblePos.y--;
                 return false;
             } else {
                 return true;
             }
         }
-        if (_dir > 0 && gridYVisible == 0) {
-            if (_newY < maxY) {
+        if (_dir > 0 && gridVisiblePos.y == 0) {
+            if (_newY < maxInnerBoarder.y) {
                 return true;
-            } else if (_newY >= maxY) {
-                gridYVisible++;
+            } else if (_newY >= maxInnerBoarder.y) {
+                gridVisiblePos.y++;
                 return false;
             }
         }
-        if (_dir > 0 && gridYVisible > 0) {
-            if (maxY + gridYVisible < gridYLimit && _newY > maxY) {
-                gridYVisible++;
+        if (_dir > 0 && gridVisiblePos.y > 0) {
+            if (maxInnerBoarder.y + gridVisiblePos.y < gridLimit.y && _newY > maxInnerBoarder.y) {
+                gridVisiblePos.y++;
                 return false;
             } else {
                 return true;
@@ -423,26 +422,36 @@ let sketch = function (p) {
     }
 
     /** move the dialog text positions down */
-    //i don't think i need this?
-    p.shiftDialog = function(){
-        if (dialogToShow[dialogToShow.length - 1].y > p.height - dialogOffset) {
-            dialogY = p.height - (dialogToShow.length * dialogOffset);
+    p.shiftDialog = function () {
+        if (dialogToShow[dialogToShow.length - 1].pos.y > p.height - dialogOffset) {
+            dialogStart.y = p.height - (dialogToShow.length * dialogOffset);
             for (var i = 0; i < dialogToShow.length; i++) {
-                dialogToShow[i].y = dialogY + (i * dialogOffset);
+                dialogToShow[i].pos.y = dialogStart.y + (i * dialogOffset);
+                scrollPos.y = p.height - scrollHeight;
             }
         }
     }
 
     /** adding a new dialog line and its color */
-    p.newDialogLine = function(_text, _color){
-        dialogToShow.push(new p.Dialog(dialogX, dialogY + (dialogToShow.length * dialogOffset), _text, _color));
+    p.newDialogLine = function (_text, _color) {
+        dialogToShow.push(new p.Dialog(p.createVector(dialogStart.x, dialogStart.y + (dialogToShow.length * dialogOffset)), _text, _color));
+        p.shiftDialog();
+        p.adjustScroll();
+    }
+
+    p.adjustScroll = function () {
+        if (dialogToShow.length == dialogScreenLimit) {
+            scrollHeight = p.height - 20;
+        } else if (dialogToShow.length > dialogScreenLimit && scrollHeight > 10) {
+            scrollHeight -= 40;
+            scrollPos.y += 40;
+        }
     }
 
     /** add item dialog */
-    p.addItemDialog = function(_cellX, _cellY){
+    p.addItemDialog = function (_cellX, _cellY) {
         p.newDialogLine("-----------------", p.color(255));
         p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
-        //p.shiftDialog();
     }
 
     /** add character dialog */
@@ -452,44 +461,41 @@ let sketch = function (p) {
         p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
         if (choices.length > 0) {
             p.newDialogLine(choices[0] + " [1] or " + choices[1] + " [2]", p.color(255));
-            talkCellX = _cellX;
-            talkCellY = _cellY;
+            talkCellPos.x = _cellX;
+            talkCellPos.y = _cellY;
             mustAnswer = true;
         } else {
-            visibleGrid[talkCellX][talkCellY].adjustDialog();
+            visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
         }
-        //p.shiftDialog();
     }
 
     /** add answer dialog */
     p.addAnswerDialog = function (_index) {
-        p.newDialogLine(visibleGrid[talkCellX][talkCellY].choices[_index], p.color(255));
-        p.newDialogLine(visibleGrid[talkCellX][talkCellY].answers[_index], visibleGrid[talkCellX][talkCellY].col);
-        //p.shiftDialog();
-        visibleGrid[talkCellX][talkCellY].adjustDialog();
+        p.newDialogLine(visibleGrid[talkCellPos.x][talkCellPos.y].choices[_index], p.color(255));
+        p.newDialogLine(visibleGrid[talkCellPos.x][talkCellPos.y].answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
+        visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
         mustAnswer = false;
     }
 
     /** add answer warning dialog */
     p.addMustAnswerDialog = function () {
-        p.newDialogLine("You must answer the question.", visibleGrid[talkCellX][talkCellY].col);
-        //p.shiftDialog();
+        p.newDialogLine("You must answer the question.", visibleGrid[talkCellPos.x][talkCellPos.y].col);
     }
 
     /** add inventory text to the dialog */
-    p.addInventory = function(){
+    p.addInventory = function () {
         var inventoryText = "I have: ";
-        if(inventory.length > 0){
-            for(var i = 0; i <= inventory.length; i++){
-                if(i == inventory.length){
+        if (inventory.length > 0) {
+            for (var i = 0; i <= inventory.length; i++) {
+                if (i == inventory.length) {
                     inventoryText = inventoryText + ".";
-                } else if(i == 0){
+                } else if (i == 0) {
                     inventoryText = inventoryText + " " + inventory[i].name;
-                }else{
+                } else {
                     inventoryText = inventoryText + ", " + inventory[i].name;
                 }
             }
-        } else{
+        } else {
             inventoryText = inventoryText + "nothing.";
         }
         p.newDialogLine(inventoryText, p.color(255));
@@ -499,27 +505,25 @@ let sketch = function (p) {
     p.adjustVisibleGrid = function () {
         for (var x = 0; x < gridWidthVisible; x++) {
             for (var y = 0; y < gridHeightVisible; y++) {
-                visibleGrid[x][y] = grid[gridXVisible + x][gridYVisible + y];
-                visibleGrid[x][y].x = x * cellOffset + gridOffset;
-                visibleGrid[x][y].y = y * cellOffset + gridOffset;
-                visibleGrid[x][y].baseX = visibleGrid[x][y].x;
-                visibleGrid[x][y].baseY = visibleGrid[x][y].y;
+                visibleGrid[x][y] = grid[gridVisiblePos.x + x][gridVisiblePos.y + y];
+                visibleGrid[x][y].pos.x = x * cellOffset + gridOffset;
+                visibleGrid[x][y].pos.y = y * cellOffset + gridOffset;
+                visibleGrid[x][y].basePos.x = visibleGrid[x][y].pos.x;
+                visibleGrid[x][y].basePos.y = visibleGrid[x][y].pos.y;
             }
         }
     }
 
     p.Cell = class {
-        constructor(_x, _y, _img) {
-            this.x = _x;
-            this.y = _y;
+        constructor(_pos, _img) {
+            this.pos = _pos;
             this.img = _img;
             this.startImg = _img;
             this.shouldDraw = true;
 
             this.wall = false;
 
-            this.baseX = _x;
-            this.baseY = _y;
+            this.basePos = _pos;
 
             if (this.img == ".") {
                 this.col = p.color(100, 100, 100);
@@ -542,9 +546,9 @@ let sketch = function (p) {
         }
 
         display() {
-            if(this.shouldDraw){
+            if (this.shouldDraw) {
                 p.fill(this.col);
-                p.text(this.img, this.x, this.y);
+                p.text(this.img, this.pos.x, this.pos.y);
             }
         }
 
@@ -552,8 +556,8 @@ let sketch = function (p) {
 
     p.TallGrass = class extends p.Cell {
 
-        constructor(_x, _y, _img) {
-            super(_x, _y, _img);
+        constructor(_pos, _img) {
+            super(_pos, _img);
 
             this.overlapStart = 100;
             this.overlapCount = 0;
@@ -587,9 +591,8 @@ let sketch = function (p) {
             if (this.shouldDraw) {
                 p.fill(this.col);
                 p.push();
-                this.x = 0;
-                this.y = 0;
-                p.translate(this.baseX, this.baseY);
+                this.pos = p.createVector(0, 0);
+                p.translate(this.basePos.x, this.basePos.y);
                 p.shearX(this.sheerAmt);
                 this.sheerTime--;
                 if (this.sheerTime < 0) {
@@ -599,7 +602,7 @@ let sketch = function (p) {
                     }
                     this.sheerTime = this.sheerStart;
                 }
-                p.text(this.img, this.x, this.y);
+                p.text(this.img, this.pos.x, this.pos.y);
                 p.pop();
                 if (this.overlapCount > 0) {
                     this.overlapTimer();
@@ -610,8 +613,8 @@ let sketch = function (p) {
     }
 
     p.ShortGrass = class extends p.Cell {
-        constructor(_x, _y, _img) {
-            super(_x, _y, _img);
+        constructor(_pos, _img) {
+            super(_pos, _img);
 
             this.off = 0;
 
@@ -626,11 +629,9 @@ let sketch = function (p) {
             if (this.ambiantCounter < 0) {
                 this.off = this.off + 0.1;
                 this.sign = Math.round(p.random(-1, 1));
-                this.x = this.x + (this.sign * p.noise(this.off));
-                this.y = this.y + (this.sign * p.noise(this.off));
+                this.pos = p.createVector(this.pos.x + (this.sign * p.noise(this.off)), this.pos.y + (this.sign * p.noise(this.off)));
                 if (this.ambiantCounter < -20) {
-                    this.x = this.baseX;
-                    this.y = this.baseY;
+                    this.pos = p.createVector(this.basePos.x, this.basePos.y);
                     this.ambiantCounter = this.ambiantStart;
                     this.off = 0;
                 }
@@ -639,8 +640,8 @@ let sketch = function (p) {
     }
 
     p.Water = class extends p.Cell {
-        constructor(_x, _y, _img) {
-            super(_x, _y, _img);
+        constructor(_pos, _img) {
+            super(_pos, _img);
 
             this.animFrames = [];
             this.frameIndex = 0;
@@ -668,17 +669,17 @@ let sketch = function (p) {
         }
 
         display() {
-            if(this.shouldDraw){
+            if (this.shouldDraw) {
                 this.animate();
                 p.fill(this.col);
-                p.text(this.animFrames[this.frameIndex], this.x, this.y);
+                p.text(this.animFrames[this.frameIndex], this.pos.x, this.pos.y);
             }
         }
     }
 
-    p.Door = class extends p.Cell{
-        constructor(_x, _y, _img){
-            super(_x, _y, _img);
+    p.Door = class extends p.Cell {
+        constructor(_pos, _img) {
+            super(_pos, _img);
             this.col = p.color(176, 148, 63);
             this.door = true;
             this.allDialog = [];
@@ -706,7 +707,7 @@ let sketch = function (p) {
             this.nextScene = this.allDialog[this.storyIndex].nextScene;
         }
 
-        openDoor(){
+        openDoor() {
             this.col = p.color(100, 100, 100);
             this.door = false;
             this.img = ".";
@@ -714,9 +715,9 @@ let sketch = function (p) {
         }
     }
 
-    p.PickAbleItem = class extends p.Cell{
-        constructor(_x, _y, _img){
-            super(_x, _y, _img);
+    p.PickAbleItem = class extends p.Cell {
+        constructor(_pos, _img) {
+            super(_pos, _img);
             this.col = p.color(176, 148, 63);
             this.collect = true;
             this.allDialog = [];
@@ -739,7 +740,7 @@ let sketch = function (p) {
                 }
             }
         }
-        
+
         isCollected() {
             this.img = ".";
             this.col = p.color(100, 100, 100);
@@ -749,8 +750,8 @@ let sketch = function (p) {
     }
 
     p.Character = class extends p.Cell {
-        constructor(_x, _y, _img) {
-            super(_x, _y, _img);
+        constructor(_pos, _img) {
+            super(_pos, _img);
             this.allDialog = [];
             this.choices;
             this.answers;
@@ -764,12 +765,12 @@ let sketch = function (p) {
 
             this.off = 0;
 
-            if(this.img == '@'){
+            if (this.img == '@') {
                 this.col = p.color(255, 0, 0);
-            }  else if (this.img == 'R'){
+            } else if (this.img == 'R') {
                 this.col = p.color(171, 235, 52);
             }
-            
+
             this.dialog = this.assignDialog();
             this.interact = true;
             this.hasBump = true;
@@ -781,8 +782,7 @@ let sketch = function (p) {
             this.sign = Math.round(p.random(-1, 1));
             this.y = this.y + (this.sign * p.noise(this.off));
             if (this.bumpTime < 0) {
-                this.x = this.baseX;
-                this.y = this.baseY;
+                this.pos = p.createVector(this.basePos.x, this.basePos.y);
                 this.off = 0;
                 this.bumpTime = this.bumpStart;
                 this.doBump = false;
@@ -824,48 +824,43 @@ let sketch = function (p) {
             this.nextScene = this.allDialog[this.storyIndex].nextScene;
         }
 
-        
+
     }
 
-    p.InventoryItem = class{
-        constructor(_img, _name){
+    p.InventoryItem = class {
+        constructor(_img, _name) {
             this.img = _img;
             this.name = _name;
         }
     }
 
     p.Player = class {
-        constructor(_x, _y, _img, _gX, _gY) {
-            this.x = _x;
-            this.y = _y;
-            this.gridX = _gX;
-            this.gridY = _gY;
+        constructor(_x, _y, _img, _pos) {
+            this.pos = p.createVector(_x, _y);
+            this.gridPos = _pos;
             this.img = _img;
         }
 
         display() {
-            p.text(this.img, this.x, this.y);
+            p.text(this.img, this.pos.x, this.pos.y);
         }
 
         move(_x, _y) {
-            this.x += _x;
-            this.y += _y;
-            this.gridX += Math.sign(_x);
-            this.gridY += Math.sign(_y);
+            this.pos.add(_x, _y);
+            this.gridPos.add(Math.sign(_x), Math.sign(_y));
         }
     }
 
     p.Dialog = class {
-        constructor(_x, _y, _txt, _color) {
-            this.x = _x;
-            this.y = _y;
+        constructor(_pos, _txt, _color) {
+            this.pos = _pos;
             this.col = _color;
             this.txt = _txt;
         }
 
         display() {
             p.fill(this.col);
-            p.text(this.txt, this.x, this.y);
+            p.text(this.txt, this.pos.x, this.pos.y);
         }
     }
 
