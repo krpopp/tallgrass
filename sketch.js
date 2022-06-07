@@ -95,6 +95,8 @@ let sketch = function (p) {
     /** scroll bar start position */
     var scrollPos = p.createVector(0, 0);
 
+    var sounds = [];
+
     //#endregion
 
     p.preload = function () {
@@ -151,6 +153,10 @@ let sketch = function (p) {
             xCheck++;
         }
         //#endregion
+
+        sounds[0] = p.loadSound('sound1.mp3');
+        sounds[1] = p.loadSound('sound2.mp3');
+        sounds[2] = p.loadSound('sound3.mp3');
 
         player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].pos.x, visibleGrid[playerStartPos.x][playerStartPos.y].pos.y, "O", playerStartPos);
         p.adjustVisibleGrid();
@@ -321,6 +327,8 @@ let sketch = function (p) {
                 if(!cell.complete){
                     p.addDialog(_cellX, _cellY);
                     if(cell.hasBump){
+                        var randSound = p.random(sounds);
+                        randSound.play();
                         cell.doBump = true;
                     }
                     if(cell.data[visibleGrid[_cellX][_cellY].storyIndex].choices.length == 0){
@@ -482,6 +490,8 @@ let sketch = function (p) {
         var storyPoint = cell.storyIndex;
         var cellData = cell.data[storyPoint];
         cell.doBump = true;
+        var randSound = p.random(sounds);
+        randSound.play();
         p.newDialogLine(cellData.choices[_index], p.color(255));
         if(cellData.hasGate){
             if(p.checkGate(talkCellPos.x, talkCellPos.y) && _index == 0){
