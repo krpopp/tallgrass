@@ -5,19 +5,12 @@ let sketch = function (p) {
     //story lol
     //i think there's leaks or smthg
     //smooth scroll on text
-    //inventory
     //help
     //intro text
-    //level test with various things to do
-        //take item, put in inventory
-        //give item in inventory to NPC
-        //NPC completes action
     //moving NPCs?
     //think about sound
     //differentiate b/t diff sounds
     //better way to set up characters
-    //diff b/t items w/ same character
-    //choice answers based on inventory
     //#endregion
 
     //#region Variable definitions
@@ -120,15 +113,6 @@ let sketch = function (p) {
         gridWidth = level.getColumnCount();
         gridHeight = level.getRowCount();
 
-        //#region not sure if i need this
-        // if (playerStartX > gridWidth) {
-        //     playerStartX = gridWidth - 30;
-        // }
-        // if (playerStartY > gridHeight) {
-        //     playerStartY = gridHeight - 30;
-        // }
-        //#endregion
-
         //#region Setting the camera bounds.
         minInnerBoarder = p.createVector(gridWidthVisible * .3, gridHeightVisible * .3);
         maxInnerBoarder = p.createVector(gridWidthVisible * .7, gridHeightVisible * .7);
@@ -168,11 +152,11 @@ let sketch = function (p) {
         }
         //#endregion
 
-        //player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].x, visibleGrid[playerStartPos.x][playerStartPos.y].y, "O", playerStartPos.x, playerStartPos.y);
         player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].pos.x, visibleGrid[playerStartPos.x][playerStartPos.y].pos.y, "O", playerStartPos);
         p.adjustVisibleGrid();
         visibleGrid[player.gridPos.x][player.gridPos.y].shouldDraw = false;
         p.angleMode(p.DEGREES);
+        p.setAttributes('antialias', false);
     };
 
     p.draw = function () {
@@ -315,35 +299,6 @@ let sketch = function (p) {
         visibleGrid[_nextX][_nextY].shouldDraw = false;
     }
 
-    // /** checks to see if the cell the player is moving into has a collision event */
-    // p.checkColl = function (_cellX, _cellY) {
-    //     if (visibleGrid[_cellX][_cellY].wall || visibleGrid[_cellX][_cellY].door) { //if it's a wall or door
-    //         if(p.checkInventory(_cellX, _cellY)){ //check if you need an item to go past
-    //                 visibleGrid[_cellX][_cellY].adjustDialog();
-    //                 p.addItemDialog(_cellX, _cellY);
-    //                 visibleGrid[_cellX][_cellY].openDoor();
-    //         } 
-    //         return 1; //don't go into that cell
-    //     } else if (visibleGrid[_cellX][_cellY].interact) { //if it's a cell you can interact with
-    //         p.addDialog(_cellX, _cellY);
-    //         if (visibleGrid[_cellX][_cellY].hasBump) {
-    //             console.log("hi");
-    //             visibleGrid[_cellX][_cellY].doBump = true;
-    //         }
-    //         return 2;
-    //     } else if (visibleGrid[_cellX][_cellY].collect) { //if it's a cell you can pick up
-    //         p.addItemDialog(_cellX, _cellY);
-    //         inventory.push(new p.InventoryItem(visibleGrid[_cellX][_cellY].img, visibleGrid[_cellX][_cellY].name));
-    //         visibleGrid[_cellX][_cellY].isCollected();
-    //         return 3;
-    //     } else if (visibleGrid[_cellX][_cellY].hasOverlap) { //if it's a cell that you can walk on, but it does something
-    //         visibleGrid[_cellX][_cellY].overlap();
-    //         return 4;
-    //     } else {
-    //         return 0;
-    //     }
-    // }
-
      /** checks to see if the cell the player is moving into has a collision event */
      p.checkColl = function (_cellX, _cellY) {
         var checkCell = visibleGrid[_cellX][_cellY];
@@ -355,21 +310,32 @@ let sketch = function (p) {
     }
 
     p.handleDialog = function(_cellX, _cellY){
-        var currentData = visibleGrid[_cellX][_cellY];
-        if(currentData.data != null){
-            p.addDialog(_cellX, _cellY);
-            if(currentData.data[visibleGrid[_cellX][_cellY].storyIndex].choices.length == 0){
-                visibleGrid[_cellX][_cellY].adjustDialog();
-                if(currentData.collect){
-                    inventory.push(new p.InventoryItem(visibleGrid[_cellX][_cellY].img, visibleGrid[_cellX][_cellY].name));
-                    visibleGrid[_cellX][_cellY].isCollected();
+        var cell = visibleGrid[_cellX][_cellY];
+        if(cell.data != null){
+            if(cell.isItem && cell.data[cell.storyIndex].hasGate && !cell.complete){
+                if(p.checkGate(_cellX, _cellY)){
+                    cell.gateSuccess();
+                } 
+                p.addDialog(_cellX, _cellY);
+            }  else {
+                if(!cell.complete){
+                    p.addDialog(_cellX, _cellY);
+                    if(cell.hasBump){
+                        cell.doBump = true;
+                    }
+                    if(cell.data[visibleGrid[_cellX][_cellY].storyIndex].choices.length == 0){
+                        cell.adjustDialog();
+                        if(cell.collect){
+                            inventory.push(new p.InventoryItem(cell.img, cell.name));
+                            cell.isCollected();
+                        }
+                    } 
                 }
-            } 
+            }
         }
     }
 
-    p.checkGate = function(_cellX, _cellY, _index){
-        var currentData = visibleGrid[_cellX][_cellY];
+    p.checkGate = function(_cellX, _cellY){
         if(p.checkInventory(_cellX, _cellY)){
             return true;
         } else{
@@ -379,9 +345,9 @@ let sketch = function (p) {
 
     /** checks if the cell needs an item to work */
     p.checkInventory = function (_cellX, _cellY) {
-        if (visibleGrid[_cellX][_cellY].neededItem != 0) { //if the cell needs an item
+        if (visibleGrid[_cellX][_cellY].data.needItem != 0) { //if the cell needs an item
             for (var i = 0; i < inventory.length; i++) { //check if the player has it
-                if (inventory[i].img == visibleGrid[_cellX][_cellY].neededItem) {
+                if (inventory[i].img == visibleGrid[_cellX][_cellY].data[visibleGrid[_cellX][_cellY].storyIndex].needItem) {
                     return true;
                 } else{
                     return false;
@@ -496,7 +462,6 @@ let sketch = function (p) {
         p.newDialogLine("-----------------", p.color(255));
         p.newDialogLine(cellData.line, visibleGrid[_cellX][_cellY].col);
         if(cellData.choices.length > 0){
-            console.log("in");
             p.newDialogLine(cellData.choices[0] + " [1] or " + cellData.choices[1] + " [2]", p.color(255));
             talkCellPos.x = _cellX;
             talkCellPos.y = _cellY;
@@ -511,46 +476,25 @@ let sketch = function (p) {
         p.newDialogLine(cellData.gateFail, visibleGrid[_cellX][_cellY].col);
     }
 
-    // /** add item dialog */
-    // p.addItemDialog = function (_cellX, _cellY) {
-    //     p.newDialogLine("-----------------", p.color(255));
-    //     p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
-    // }
-
-    // /** add character dialog */
-    // p.addDialog = function (_cellX, _cellY) {
-    //     var choices = visibleGrid[_cellX][_cellY].choices;
-    //     p.newDialogLine("-----------------", p.color(255));
-    //     p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
-    //     if (choices.length > 0) {
-    //         p.newDialogLine(choices[0] + " [1] or " + choices[1] + " [2]", p.color(255));
-    //         talkCellPos.x = _cellX;
-    //         talkCellPos.y = _cellY;
-    //         mustAnswer = true;
-    //     } else {
-    //         if(p.checkInventory(_cellX, _cellY)){
-    //             visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
-    //         }
-    //     }
-    // }
-
     /** add answer dialog */
     p.addAnswerDialog = function ( _index) {
-        var storyPoint = visibleGrid[talkCellPos.x][talkCellPos.y].storyIndex;
-        var cellData = visibleGrid[talkCellPos.x][talkCellPos.y].data[storyPoint];
+        var cell = visibleGrid[talkCellPos.x][talkCellPos.y];
+        var storyPoint = cell.storyIndex;
+        var cellData = cell.data[storyPoint];
+        cell.doBump = true;
         p.newDialogLine(cellData.choices[_index], p.color(255));
         if(cellData.hasGate){
             if(p.checkGate(talkCellPos.x, talkCellPos.y) && _index == 0){
-                p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
-                visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
+                p.newDialogLine(cellData.answers[_index], cell.col);
+                cell.adjustDialog();
             } else if(_index == 1){
                 p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
             }else{
                 p.newDialogLine(cellData.gateFail, visibleGrid[talkCellPos.x][talkCellPos.y].col);
             }
         } else{
-            p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
-            visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
+            p.newDialogLine(cellData.answers[_index], cell.col);
+            cell.adjustDialog();
         }
         
         mustAnswer = false;
@@ -767,6 +711,9 @@ let sketch = function (p) {
             this.dialog = this.data[this.storyIndex].line;
             // this.neededItem = 0;
 
+            this.isItem = true;
+
+            this.complete = false;
             
             //this.dialog = this.assignDialog();
         }
@@ -779,23 +726,14 @@ let sketch = function (p) {
             }
         }
 
-        // assignDialog() {
-        //     for (var i = 0; i < itemText.items.length; i++) {
-        //         if (this.img == itemText.items[i].object) {
-        //             this.allDialog = itemText.items[i].dialog;
-        //             this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
-        //             this.neededItem = itemText.items[i].dialog[this.storyIndex].needItem;
-        //             return itemText.items[i].dialog[this.storyIndex].line;
-        //         }
-        //     }
-        // }
-
-        // adjustDialog() {
-        //     this.storyIndex = this.data[this.storyIndex].nextScene;
-        //     this.dialog = this.data[this.storyIndex].line;
-        // }
+        adjustDialog() {
+            this.storyIndex = this.data[this.storyIndex].nextScene;
+            this.dialog = this.data[this.storyIndex].line;
+            this.complete = true;
+        }
 
         gateSuccess(){
+            this.adjustDialog();
             this.col = p.color(100, 100, 100);
             this.collide = false;
             this.img = ".";
@@ -816,6 +754,8 @@ let sketch = function (p) {
             this.data = this.assignDialog();
             this.storyIndex = 0;
             this.dialog = this.data[this.storyIndex].line;
+
+            this.isItem = true;
             //this.dialog = this.assignDialog();
         }
 
@@ -826,18 +766,6 @@ let sketch = function (p) {
                 }
             }
         }
-
-        // assignDialog() {
-        //     for (var i = 0; i < itemText.items.length; i++) {
-        //         if (this.img == itemText.items[i].object) {
-        //             this.allDialog = itemText.items[i].dialog;
-        //             this.name = itemText.items[i].dialog[this.storyIndex].name;
-        //             this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
-        //             this.neededItem = itemText.items[i].dialog[this.storyIndex].neededItem;
-        //             return itemText.items[i].dialog[this.storyIndex].line;
-        //         }
-        //     }
-        // }
 
         adjustDialog(){
 
@@ -869,6 +797,9 @@ let sketch = function (p) {
             this.storyIndex = 0;
             this.dialog = this.data[this.storyIndex].line;
 
+
+            this.isItem = false;
+
             //this.neededItem = 0;
 
             this.off = 0;
@@ -889,7 +820,6 @@ let sketch = function (p) {
             this.off = this.off + 0.1;
             this.sign = Math.round(p.random(-1, 1));
             this.pos.y = this.pos.y + (this.sign * p.noise(this.off));
-            console.log(this.y);
             if (this.bumpTime < 0) {
                 this.pos = p.createVector(this.basePos.x, this.basePos.y);
                 this.off = 0;
@@ -902,7 +832,6 @@ let sketch = function (p) {
             if (this.shouldDraw) {
                 super.display();
                 if (this.doBump) {
-                    console.log("hihi");
                     this.bumpAnim();
                 }
             }
@@ -916,21 +845,6 @@ let sketch = function (p) {
             }
         }
 
-        // assignDialog() {
-        //     for (var i = 0; i < text.characters.length; i++) {
-        //         if (this.img == text.characters[i].name) {
-        //             this.allDialog = text.characters[i].dialog;
-        //             if (text.characters[i].dialog[this.storyIndex].choices.length > 0) {
-        //                 this.choices = text.characters[i].dialog[this.storyIndex].choices;
-        //                 this.answers = text.characters[i].dialog[this.storyIndex].answers;
-        //             }
-        //             this.neededItem = text.characters[i].dialog[this.storyIndex].needItem;
-        //             this.nextScene = text.characters[i].dialog[this.storyIndex].nextScene;
-        //             return text.characters[i].dialog[this.storyIndex].line;
-        //         }
-        //     }
-        // }
-
         adjustDialog() {
             this.storyIndex = this.data[this.storyIndex].nextScene;
             this.dialog = this.data[this.storyIndex].line;
@@ -939,19 +853,6 @@ let sketch = function (p) {
         gateSuccess(){
             adjustDialog();
         }
-
-        // adjustDialog() {
-        //     this.storyIndex = this.nextScene;
-        //     this.choices = [];
-        //     this.answers = [];
-        //     if (this.allDialog[this.storyIndex].choices.length > 0) {
-        //         this.choices = this.allDialog[this.storyIndex].choices;
-        //         this.answers = this.allDialog[this.storyIndex].answers;
-        //     }
-        //     this.dialog = this.allDialog[this.storyIndex].line;
-        //     this.nextScene = this.allDialog[this.storyIndex].nextScene;
-        // }
-
 
     }
 
