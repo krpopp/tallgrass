@@ -11,6 +11,7 @@
                   "gateFail":0,
                   "hasGate": false,
                   "needItem":0,
+                  "animWalk": [[-1, 0], [-1, 0], [-1, 0], [1, 0], [1, 0], [1, 0]],
                   "nextScene": 1
                },
                {
@@ -21,6 +22,7 @@
                   "gateFail":0,
                   "hasGate": false,
                   "needItem":0,
+                  "animWalk": null,
                   "nextScene": 1
                }
             ]
@@ -36,6 +38,7 @@
                   "gateFail":"What? No you don't.",
                   "hasGate": true,
                   "needItem": "$",
+                  "animWalk": null,
                   "nextScene": 1
                },
                {
@@ -46,6 +49,7 @@
                   "gateFail":0,
                   "hasGate": false,
                   "needItem":0,
+                  "animWalk": null,
                   "nextScene": 1
                }
             ]
@@ -61,6 +65,7 @@
                   "gateFail":0,
                   "hasGate": false,
                   "needItem": 0,
+                  "animWalk": null,
                   "nextScene": 0
                }
             ]

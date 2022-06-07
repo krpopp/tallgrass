@@ -11,6 +11,12 @@ let sketch = function (p) {
     //think about sound
     //differentiate b/t diff sounds
     //better way to set up characters
+    //animations
+    //add overlap back in
+    //make grid changes into an event
+        //when a cell changes its grid position
+        //the grid automatically refreshes
+        //and then position changes are made
     //#endregion
 
     //#region Variable definitions
@@ -196,8 +202,7 @@ let sketch = function (p) {
     p.keyPressed = function () {
         if (p.key != '1' && p.key != '2' && mustAnswer) {
             p.addMustAnswerDialog();
-        }
-        if (p.key == upKey, downKey, leftKey, rightKey && !mustAnswer) {
+        }else if (p.key == upKey || p.key == downKey || p.key == leftKey || p.key == rightKey && !mustAnswer) {
             var moveX = 0;
             var moveY = 0;
             switch (p.key) {
@@ -222,10 +227,11 @@ let sketch = function (p) {
                         p.switchVisibility(player.gridPos.x, player.gridPos.y, player.gridPos.x + moveX, player.gridPos.y + moveY);
                         if (p.checkInnerBoundsX(player.gridPos.x + moveX, player.gridPos.y + moveY, moveX) || p.checkInnerBoundsY(player.gridPos.x + moveX, player.gridPos.y + moveY, moveY)) {
                             player.move(moveX * cellOffset, moveY * cellOffset);
+                        } else{
+                            p.adjustVisibleGrid();
                         }
                     }
                 }
-                p.adjustVisibleGrid();
             }
         }
 
@@ -233,9 +239,7 @@ let sketch = function (p) {
             if (mustAnswer) {
                 if (p.key == '1') {
                     p.addAnswerDialog(0);
-                    //p.addAnswerDialog(0);
                 } else {
-                    //p.checkGate(talkCellPos.x, talkCellPos.y, 1);
                     p.addAnswerDialog(1);
                 }
             }
@@ -273,28 +277,28 @@ let sketch = function (p) {
         switch (_img) {
             case '@':
             case 'R':
-                grid[_x][_y] = new p.Character(_pos, _img);
+                grid[_x][_y] = new p.Character(_x, _y,_pos, _img);
                 break;
             case '#':
-                grid[_x][_y] = new p.TallGrass(_pos, _img);
+                grid[_x][_y] = new p.TallGrass(_x, _y,_pos, _img);
                 break;
             case ',':
-                grid[_x][_y] = new p.ShortGrass(_pos, _img);
+                grid[_x][_y] = new p.ShortGrass(_x, _y,_pos, _img);
                 break;
             case "{":
-                grid[_x][_y] = new p.Water(_pos, _img);
+                grid[_x][_y] = new p.Water(_x, _y,_pos, _img);
                 break;
             case "}":
-                grid[_x][_y] = new p.Water(_pos, _img);
+                grid[_x][_y] = new p.Water(_x, _y,_pos, _img);
                 break;
             case "Π":
-                grid[_x][_y] = new p.Door(_pos, _img);
+                grid[_x][_y] = new p.Door(_x, _y,_pos, _img);
                 break;
             case "$":
-                grid[_x][_y] = new p.PickAbleItem(_pos, _img);
+                grid[_x][_y] = new p.PickAbleItem(_x, _y,_pos, _img);
                 break;
             default:
-                grid[_x][_y] = new p.Cell(_pos, _img);
+                grid[_x][_y] = new p.Cell(_x, _y,_pos, _img);
                 break;
         }
     }
@@ -541,22 +545,42 @@ let sketch = function (p) {
                 visibleGrid[x][y] = grid[gridVisiblePos.x + x][gridVisiblePos.y + y];
                 visibleGrid[x][y].pos.x = x * cellOffset + gridOffset;
                 visibleGrid[x][y].pos.y = y * cellOffset + gridOffset;
+                visibleGrid[x][y].gridPos.x = x;
+                visibleGrid[x][y].gridPos.y = y;
                 visibleGrid[x][y].basePos.x = visibleGrid[x][y].pos.x;
                 visibleGrid[x][y].basePos.y = visibleGrid[x][y].pos.y;
             }
         }
     }
 
+    p.adjustWholeGrid = function(){
+        console.log(gridVisiblePos.x);
+        for (var x = gridVisiblePos.x; x < gridWidthVisible; x++) {
+            for (var y = gridVisiblePos.y; y < gridHeightVisible; y++) {
+                grid[x][y] = visibleGrid[x][y];
+                // visibleGrid[x][y] = grid[gridVisiblePos.x + x][gridVisiblePos.y + y];
+                // visibleGrid[x][y].pos.x = x * cellOffset + gridOffset;
+                // visibleGrid[x][y].pos.y = y * cellOffset + gridOffset;
+                // visibleGrid[x][y].gridPos.x = x;
+                // visibleGrid[x][y].gridPos.y = y;
+                // visibleGrid[x][y].basePos.x = visibleGrid[x][y].pos.x;
+                // visibleGrid[x][y].basePos.y = visibleGrid[x][y].pos.y;
+            }
+        }
+    }
+
     p.Cell = class {
-        constructor(_pos, _img) {
-            this.pos = _pos;
+        constructor(_x, _y, _pos, _img) {
+            this.pos = p.createVector(_pos.x, _pos.y);
             this.img = _img;
             this.startImg = _img;
             this.shouldDraw = true;
 
+            this.gridPos = p.createVector(_x, _y);
+
             this.collide = false;
 
-            this.basePos = _pos;
+            this.basePos = p.createVector(_pos.x, _pos.y);
 
             if (this.img == ".") {
                 this.col = p.color(100, 100, 100);
@@ -589,8 +613,8 @@ let sketch = function (p) {
 
     p.TallGrass = class extends p.Cell {
 
-        constructor(_pos, _img) {
-            super(_pos, _img);
+        constructor(_x, _y, _pos, _img) {
+            super(_x, _y, _pos, _img);
 
             this.overlapStart = 100;
             this.overlapCount = 0;
@@ -646,8 +670,8 @@ let sketch = function (p) {
     }
 
     p.ShortGrass = class extends p.Cell {
-        constructor(_pos, _img) {
-            super(_pos, _img);
+        constructor(_x, _y, _pos, _img) {
+            super(_x, _y, _pos, _img);
 
             this.off = 0;
 
@@ -673,8 +697,8 @@ let sketch = function (p) {
     }
 
     p.Water = class extends p.Cell {
-        constructor(_pos, _img) {
-            super(_pos, _img);
+        constructor(_x, _y, _pos, _img) {
+            super(_x, _y, _pos, _img);
 
             this.animFrames = [];
             this.frameIndex = 0;
@@ -711,8 +735,8 @@ let sketch = function (p) {
     }
 
     p.Door = class extends p.Cell {
-        constructor(_pos, _img) {
-            super(_pos, _img);
+        constructor(_x, _y, _pos, _img) {
+            super(_x, _y, _pos, _img);
             this.col = p.color(176, 148, 63);
             this.collide = true;
 
@@ -753,8 +777,8 @@ let sketch = function (p) {
     }
 
     p.PickAbleItem = class extends p.Cell {
-        constructor(_pos, _img) {
-            super(_pos, _img);
+        constructor(_x, _y, _pos, _img) {
+            super(_x, _y, _pos, _img);
             this.col = p.color(176, 148, 63);
             this.collect = true;
             //this.allDialog = [];
@@ -790,17 +814,14 @@ let sketch = function (p) {
     }
 
     p.Character = class extends p.Cell {
-        constructor(_pos, _img) {
-            super(_pos, _img);
-            //this.allDialog = [];
-            //this.choices;
-            //this.answers;
+        constructor(_x, _y, _pos, _img) {
+            super(_x, _y, _pos, _img);
             this.nextScene = [];
 
             this.collide = true;
 
-            this.bumpStart = 20;
-            this.bumpTime = this.bumpStart;
+            this.animStart = 20;
+            this.animTime = this.animStart;
             this.doBump = false;
 
             this.data = this.assignDialog();
@@ -809,9 +830,6 @@ let sketch = function (p) {
 
 
             this.isItem = false;
-
-            //this.neededItem = 0;
-
             this.off = 0;
 
             if (this.img == '@') {
@@ -820,32 +838,103 @@ let sketch = function (p) {
                 this.col = p.color(171, 235, 52);
             }
 
-            //this.dialog = this.assignDialog();
             this.interact = true;
             this.hasBump = true;
+
+            this.animDir = 1;
+            this.animFactor = 1.2;
+
+            this.animFrame = 0;
+            this.animMod = 1;
         }
 
         bumpAnim() {
-            this.bumpTime--;
+            this.animTime--;
             this.off = this.off + 0.1;
             this.sign = Math.round(p.random(-1, 1));
             this.pos.y = this.pos.y + (this.sign * p.noise(this.off));
-            if (this.bumpTime < 0) {
-                this.pos = p.createVector(this.basePos.x, this.basePos.y);
+            if (this.animTime < 0) {
+                this.pos = p.createVector(this.basePos);
                 this.off = 0;
-                this.bumpTime = this.bumpStart;
+                this.animTime = this.animStart;
                 this.doBump = false;
             }
         }
 
-        display() {
-            if (this.shouldDraw) {
-                super.display();
-                if (this.doBump) {
-                    this.bumpAnim();
-                }
+        talkAnim(){
+            this.animTime--;
+            var dir = this.animDir;
+            dir = dir * this.animFactor;
+            if(this.pos.y > this.basePos.y + 2 && this.animDir > 0){
+                this.animDir = -this.animDir;
+            } else if(this.pos.y < this.basePos.y - 2 && this.animDir < 1){
+                this.animDir = -this.animDir;
+            }
+            this.pos.y = this.pos.y + dir;
+            if(this.animTime < 0){
+                this.pos = p.createVector(this.basePos.x, this.basePos.y);
+                this.animTime = this.animStart;
+                this.animDir = 1;
+                this.doBump = false;
             }
         }
+
+        shakeAnim(){
+            this.animTime--;
+            var dir = this.animDir;
+            dir = dir * this.animFactor;
+            if(this.pos.x > this.basePos.x + 2 && this.animDir > 0){
+                this.animDir = -this.animDir;
+            } else if(this.pos.x < this.basePos.x - 2 && this.animDir < 1){
+                this.animDir = -this.animDir;
+            }
+            this.pos.x = this.pos.x + dir;
+            if(this.animTime < 0){
+                this.pos = p.createVector(this.basePos.x, this.basePos.y);
+                this.animTime = this.animStart;
+                this.animDir = 1;
+                this.doBump = false;
+            }
+        }
+
+        perishAnim(){
+            p.push();
+            p.fill(this.col);
+            this.pos = p.createVector(0, 0);
+            p.translate(this.basePos.x, this.basePos.y - 10);
+            p.rotate(90);
+            p.text(this.img, this.pos.x, this.pos.y);
+            p.pop();
+        }
+
+        display() {
+            if (this.shouldDraw) {
+                if (this.doBump) {
+                    this.talkAnim();
+                } 
+                // if(this.data[this.storyIndex].animWalk != null){
+                //     this.walkAnim();
+                // }
+                super.display();
+            }
+        }
+
+        // walkAnim(){ 
+        //     console.log("run");
+        //     this.animTime--;
+        //     if(this.animTime < 0){
+        //         var x = this.data[this.storyIndex].animWalk[this.animFrame][0];
+        //         var y = this.data[this.storyIndex].animWalk[this.animFrame][1];
+        //         var newPos = p.createVector(x * cellOffset, y * cellOffset);
+        //         this.pos = p.createVector(this.pos.x + newPos.x, this.pos.y + newPos.y);
+        //         this.animFrame += this.animMod;
+        //         this.animTime = this.animStart;
+        //         if(this.animFrame >= this.data[this.storyIndex].animWalk.length){
+        //             this.animFrame = 0;
+        //         } 
+        //         p.adjustWholeGrid();
+        //     }
+        // }
 
         assignDialog() {
             for (var i = 0; i < text.characters.length; i++) {
