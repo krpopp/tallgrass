@@ -8,7 +8,9 @@
                   "line": "Do you want to go outside?",
                   "choices": ["Yes", "No"],
                   "answers": ["Great", "Too bad"],
-                  "needItem":"",
+                  "gateFail":0,
+                  "hasGate": false,
+                  "needItem":0,
                   "nextScene": 1
                },
                {
@@ -16,7 +18,9 @@
                   "line": "Go ahead, go outside",
                   "choices": [],
                   "answers": [],
-                  "needItem":"",
+                  "gateFail":0,
+                  "hasGate": false,
+                  "needItem":0,
                   "nextScene": 1
                }
             ]
@@ -29,6 +33,8 @@
                   "line": "Have you seen my key?",
                   "choices": ["Yes", "No"],
                   "answers": ["Oh great. I'll unlock my door.", "Well, if you do let me know."],
+                  "gateFail":"What? No you don't.",
+                  "hasGate": true,
                   "needItem": "$",
                   "nextScene": 1
                },
@@ -37,21 +43,10 @@
                   "line": "Um, it's kind of weird that you went in my house.",
                   "choices": [],
                   "answers": [],
-                  "needItem":"",
+                  "gateFail":0,
+                  "hasGate": false,
+                  "needItem":0,
                   "nextScene": 1
-               }
-            ]
-         },
-         {
-            "name":"$",
-            "dialog":[
-               {
-                  "index": 0,
-                  "line": "I picked up a key.",
-                  "choices": [],
-                  "answers": [],
-                  "needItem": "",
-                  "nextScene": 0
                }
             ]
          },
@@ -63,7 +58,9 @@
                   "line": "Oh, welcome to my house.",
                   "choices": [],
                   "answers": [],
-                  "needItem": "",
+                  "gateFail":0,
+                  "hasGate": false,
+                  "needItem": 0,
                   "nextScene": 0
                }
             ]

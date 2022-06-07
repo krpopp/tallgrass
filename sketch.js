@@ -16,9 +16,8 @@ let sketch = function (p) {
     //think about sound
     //differentiate b/t diff sounds
     //better way to set up characters
-    //worried about usage of visible grid vs grid
     //diff b/t items w/ same character
-    //need to check items to move forward in character's dialog 
+    //choice answers based on inventory
     //#endregion
 
     //#region Variable definitions
@@ -226,9 +225,10 @@ let sketch = function (p) {
                     break;
             }
             if (p.checkOuterBounds(player.gridPos.x + moveX, player.gridPos.y + moveY)) {
-                var colVal = p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
+                //var colVal = p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
                 if (Math.sign(moveX) != 0 || Math.sign(moveY) != 0) {
-                    if (colVal == 0 || colVal == 3 || colVal == 4) {
+                    p.handleDialog(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
+                    if (!p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY))) {
                         p.switchVisibility(player.gridPos.x, player.gridPos.y, player.gridPos.x + moveX, player.gridPos.y + moveY);
                         if (p.checkInnerBoundsX(player.gridPos.x + moveX, player.gridPos.y + moveY, moveX) || p.checkInnerBoundsY(player.gridPos.x + moveX, player.gridPos.y + moveY, moveY)) {
                             player.move(moveX * cellOffset, moveY * cellOffset);
@@ -243,7 +243,9 @@ let sketch = function (p) {
             if (mustAnswer) {
                 if (p.key == '1') {
                     p.addAnswerDialog(0);
+                    //p.addAnswerDialog(0);
                 } else {
+                    //p.checkGate(talkCellPos.x, talkCellPos.y, 1);
                     p.addAnswerDialog(1);
                 }
             }
@@ -313,27 +315,65 @@ let sketch = function (p) {
         visibleGrid[_nextX][_nextY].shouldDraw = false;
     }
 
-    /** checks to see if the cell the player is moving into has a collision event */
-    p.checkColl = function (_cellX, _cellY) {
-        if (visibleGrid[_cellX][_cellY].wall || visibleGrid[_cellX][_cellY].door) { //if it's a wall or door
-            p.checkInventory(_cellX, _cellY); //check if you need an item to go past
-            return 1; //don't go into that cell
-        } else if (visibleGrid[_cellX][_cellY].interact) { //if it's a cell you can interact with
+    // /** checks to see if the cell the player is moving into has a collision event */
+    // p.checkColl = function (_cellX, _cellY) {
+    //     if (visibleGrid[_cellX][_cellY].wall || visibleGrid[_cellX][_cellY].door) { //if it's a wall or door
+    //         if(p.checkInventory(_cellX, _cellY)){ //check if you need an item to go past
+    //                 visibleGrid[_cellX][_cellY].adjustDialog();
+    //                 p.addItemDialog(_cellX, _cellY);
+    //                 visibleGrid[_cellX][_cellY].openDoor();
+    //         } 
+    //         return 1; //don't go into that cell
+    //     } else if (visibleGrid[_cellX][_cellY].interact) { //if it's a cell you can interact with
+    //         p.addDialog(_cellX, _cellY);
+    //         if (visibleGrid[_cellX][_cellY].hasBump) {
+    //             console.log("hi");
+    //             visibleGrid[_cellX][_cellY].doBump = true;
+    //         }
+    //         return 2;
+    //     } else if (visibleGrid[_cellX][_cellY].collect) { //if it's a cell you can pick up
+    //         p.addItemDialog(_cellX, _cellY);
+    //         inventory.push(new p.InventoryItem(visibleGrid[_cellX][_cellY].img, visibleGrid[_cellX][_cellY].name));
+    //         visibleGrid[_cellX][_cellY].isCollected();
+    //         return 3;
+    //     } else if (visibleGrid[_cellX][_cellY].hasOverlap) { //if it's a cell that you can walk on, but it does something
+    //         visibleGrid[_cellX][_cellY].overlap();
+    //         return 4;
+    //     } else {
+    //         return 0;
+    //     }
+    // }
+
+     /** checks to see if the cell the player is moving into has a collision event */
+     p.checkColl = function (_cellX, _cellY) {
+        var checkCell = visibleGrid[_cellX][_cellY];
+        if(checkCell.collide){
+            return true;
+        } else{
+            return false;
+        }
+    }
+
+    p.handleDialog = function(_cellX, _cellY){
+        var currentData = visibleGrid[_cellX][_cellY];
+        if(currentData.data != null){
             p.addDialog(_cellX, _cellY);
-            if (visibleGrid[_cellX][_cellY].hasBump) {
-                visibleGrid[_cellX][_cellY].doBump = true;
-            }
-            return 2;
-        } else if (visibleGrid[_cellX][_cellY].collect) { //if it's a cell you can pick up
-            p.addItemDialog(_cellX, _cellY);
-            inventory.push(new p.InventoryItem(visibleGrid[_cellX][_cellY].img, visibleGrid[_cellX][_cellY].name));
-            visibleGrid[_cellX][_cellY].isCollected();
-            return 3;
-        } else if (visibleGrid[_cellX][_cellY].hasOverlap) { //if it's a cell that you can walk on, but it does something
-            visibleGrid[_cellX][_cellY].overlap();
-            return 4;
-        } else {
-            return 0;
+            if(currentData.data[visibleGrid[_cellX][_cellY].storyIndex].choices.length == 0){
+                visibleGrid[_cellX][_cellY].adjustDialog();
+                if(currentData.collect){
+                    inventory.push(new p.InventoryItem(visibleGrid[_cellX][_cellY].img, visibleGrid[_cellX][_cellY].name));
+                    visibleGrid[_cellX][_cellY].isCollected();
+                }
+            } 
+        }
+    }
+
+    p.checkGate = function(_cellX, _cellY, _index){
+        var currentData = visibleGrid[_cellX][_cellY];
+        if(p.checkInventory(_cellX, _cellY)){
+            return true;
+        } else{
+            return false;
         }
     }
 
@@ -342,11 +382,13 @@ let sketch = function (p) {
         if (visibleGrid[_cellX][_cellY].neededItem != 0) { //if the cell needs an item
             for (var i = 0; i < inventory.length; i++) { //check if the player has it
                 if (inventory[i].img == visibleGrid[_cellX][_cellY].neededItem) {
-                    visibleGrid[_cellX][_cellY].adjustDialog();
-                    p.addItemDialog(_cellX, _cellY);
-                    visibleGrid[_cellX][_cellY].openDoor();
+                    return true;
+                } else{
+                    return false;
                 }
             }
+        } else{
+            return true;
         }
     }
 
@@ -448,32 +490,69 @@ let sketch = function (p) {
         }
     }
 
-    /** add item dialog */
-    p.addItemDialog = function (_cellX, _cellY) {
-        p.newDialogLine("-----------------", p.color(255));
-        p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
-    }
-
-    /** add character dialog */
     p.addDialog = function (_cellX, _cellY) {
-        var choices = visibleGrid[_cellX][_cellY].choices;
+        var storyPoint = visibleGrid[_cellX][_cellY].storyIndex;
+        var cellData = visibleGrid[_cellX][_cellY].data[storyPoint];
         p.newDialogLine("-----------------", p.color(255));
-        p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
-        if (choices.length > 0) {
-            p.newDialogLine(choices[0] + " [1] or " + choices[1] + " [2]", p.color(255));
+        p.newDialogLine(cellData.line, visibleGrid[_cellX][_cellY].col);
+        if(cellData.choices.length > 0){
+            console.log("in");
+            p.newDialogLine(cellData.choices[0] + " [1] or " + cellData.choices[1] + " [2]", p.color(255));
             talkCellPos.x = _cellX;
             talkCellPos.y = _cellY;
             mustAnswer = true;
-        } else {
-            visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
         }
     }
 
+    p.addFailDialog = function (_cellX, _cellY) {
+        var storyPoint = visibleGrid[_cellX][_cellY].storyIndex;
+        var cellData = visibleGrid[_cellX][_cellY].data[storyPoint];
+        p.newDialogLine("-----------------", p.color(255));
+        p.newDialogLine(cellData.gateFail, visibleGrid[_cellX][_cellY].col);
+    }
+
+    // /** add item dialog */
+    // p.addItemDialog = function (_cellX, _cellY) {
+    //     p.newDialogLine("-----------------", p.color(255));
+    //     p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
+    // }
+
+    // /** add character dialog */
+    // p.addDialog = function (_cellX, _cellY) {
+    //     var choices = visibleGrid[_cellX][_cellY].choices;
+    //     p.newDialogLine("-----------------", p.color(255));
+    //     p.newDialogLine(visibleGrid[_cellX][_cellY].dialog, visibleGrid[_cellX][_cellY].col);
+    //     if (choices.length > 0) {
+    //         p.newDialogLine(choices[0] + " [1] or " + choices[1] + " [2]", p.color(255));
+    //         talkCellPos.x = _cellX;
+    //         talkCellPos.y = _cellY;
+    //         mustAnswer = true;
+    //     } else {
+    //         if(p.checkInventory(_cellX, _cellY)){
+    //             visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
+    //         }
+    //     }
+    // }
+
     /** add answer dialog */
-    p.addAnswerDialog = function (_index) {
-        p.newDialogLine(visibleGrid[talkCellPos.x][talkCellPos.y].choices[_index], p.color(255));
-        p.newDialogLine(visibleGrid[talkCellPos.x][talkCellPos.y].answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
-        visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
+    p.addAnswerDialog = function ( _index) {
+        var storyPoint = visibleGrid[talkCellPos.x][talkCellPos.y].storyIndex;
+        var cellData = visibleGrid[talkCellPos.x][talkCellPos.y].data[storyPoint];
+        p.newDialogLine(cellData.choices[_index], p.color(255));
+        if(cellData.hasGate){
+            if(p.checkGate(talkCellPos.x, talkCellPos.y) && _index == 0){
+                p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
+                visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
+            } else if(_index == 1){
+                p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
+            }else{
+                p.newDialogLine(cellData.gateFail, visibleGrid[talkCellPos.x][talkCellPos.y].col);
+            }
+        } else{
+            p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
+            visibleGrid[talkCellPos.x][talkCellPos.y].adjustDialog();
+        }
+        
         mustAnswer = false;
     }
 
@@ -521,7 +600,7 @@ let sketch = function (p) {
             this.startImg = _img;
             this.shouldDraw = true;
 
-            this.wall = false;
+            this.collide = false;
 
             this.basePos = _pos;
 
@@ -529,17 +608,17 @@ let sketch = function (p) {
                 this.col = p.color(100, 100, 100);
             } else if (this.img == '|') {
                 this.col = p.color(100, 100, 100);
-                this.wall = true;
+                this.collide = true;
             } else if (this.img == '-') {
                 this.col = p.color(107, 76, 57);
             } else if (this.img == '〰') {
                 this.col = p.color(48, 29, 16);
             } else if (this.img == '█') {
                 this.col = p.color(79, 47, 45);
-                this.wall = true;
+                this.collide = true;
             } else if (this.img == '=') {
                 this.col = p.color(0, 148, 0);
-                this.wall = true;
+                this.collide = true;
             } else {
                 this.col = p.color(255, 255, 255);
             }
@@ -681,38 +760,48 @@ let sketch = function (p) {
         constructor(_pos, _img) {
             super(_pos, _img);
             this.col = p.color(176, 148, 63);
-            this.door = true;
-            this.allDialog = [];
-            this.dialog;
-            this.neededItem = 0;
+            this.collide = true;
 
+            this.data = this.assignDialog();
             this.storyIndex = 0;
-            this.dialog = this.assignDialog();
+            this.dialog = this.data[this.storyIndex].line;
+            // this.neededItem = 0;
+
+            
+            //this.dialog = this.assignDialog();
         }
 
         assignDialog() {
             for (var i = 0; i < itemText.items.length; i++) {
                 if (this.img == itemText.items[i].object) {
-                    this.allDialog = itemText.items[i].dialog;
-                    this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
-                    this.neededItem = itemText.items[i].dialog[this.storyIndex].needItem;
-                    return itemText.items[i].dialog[this.storyIndex].line;
+                    return itemText.items[i].dialog;
                 }
             }
         }
 
-        adjustDialog() {
-            this.storyIndex = this.nextScene;
-            this.dialog = this.allDialog[this.storyIndex].line;
-            this.nextScene = this.allDialog[this.storyIndex].nextScene;
-        }
+        // assignDialog() {
+        //     for (var i = 0; i < itemText.items.length; i++) {
+        //         if (this.img == itemText.items[i].object) {
+        //             this.allDialog = itemText.items[i].dialog;
+        //             this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
+        //             this.neededItem = itemText.items[i].dialog[this.storyIndex].needItem;
+        //             return itemText.items[i].dialog[this.storyIndex].line;
+        //         }
+        //     }
+        // }
 
-        openDoor() {
+        // adjustDialog() {
+        //     this.storyIndex = this.data[this.storyIndex].nextScene;
+        //     this.dialog = this.data[this.storyIndex].line;
+        // }
+
+        gateSuccess(){
             this.col = p.color(100, 100, 100);
-            this.door = false;
+            this.collide = false;
             this.img = ".";
             this.dialog = "";
         }
+
     }
 
     p.PickAbleItem = class extends p.Cell {
@@ -720,25 +809,38 @@ let sketch = function (p) {
             super(_pos, _img);
             this.col = p.color(176, 148, 63);
             this.collect = true;
-            this.allDialog = [];
-            this.dialog;
-            this.neededItem;
+            //this.allDialog = [];
+            //this.neededItem;
             this.name;
             this.col = p.color(0, 0, 255);
+            this.data = this.assignDialog();
             this.storyIndex = 0;
-            this.dialog = this.assignDialog();
+            this.dialog = this.data[this.storyIndex].line;
+            //this.dialog = this.assignDialog();
         }
 
         assignDialog() {
             for (var i = 0; i < itemText.items.length; i++) {
                 if (this.img == itemText.items[i].object) {
-                    this.allDialog = itemText.items[i].dialog;
-                    this.name = itemText.items[i].dialog[this.storyIndex].name;
-                    this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
-                    this.neededItem = itemText.items[i].dialog[this.storyIndex].neededItem;
-                    return itemText.items[i].dialog[this.storyIndex].line;
+                    return itemText.items[i].dialog;
                 }
             }
+        }
+
+        // assignDialog() {
+        //     for (var i = 0; i < itemText.items.length; i++) {
+        //         if (this.img == itemText.items[i].object) {
+        //             this.allDialog = itemText.items[i].dialog;
+        //             this.name = itemText.items[i].dialog[this.storyIndex].name;
+        //             this.nextScene = itemText.items[i].dialog[this.storyIndex].nextScene;
+        //             this.neededItem = itemText.items[i].dialog[this.storyIndex].neededItem;
+        //             return itemText.items[i].dialog[this.storyIndex].line;
+        //         }
+        //     }
+        // }
+
+        adjustDialog(){
+
         }
 
         isCollected() {
@@ -752,16 +854,22 @@ let sketch = function (p) {
     p.Character = class extends p.Cell {
         constructor(_pos, _img) {
             super(_pos, _img);
-            this.allDialog = [];
-            this.choices;
-            this.answers;
+            //this.allDialog = [];
+            //this.choices;
+            //this.answers;
             this.nextScene = [];
+
+            this.collide = true;
 
             this.bumpStart = 20;
             this.bumpTime = this.bumpStart;
             this.doBump = false;
 
+            this.data = this.assignDialog();
             this.storyIndex = 0;
+            this.dialog = this.data[this.storyIndex].line;
+
+            //this.neededItem = 0;
 
             this.off = 0;
 
@@ -771,7 +879,7 @@ let sketch = function (p) {
                 this.col = p.color(171, 235, 52);
             }
 
-            this.dialog = this.assignDialog();
+            //this.dialog = this.assignDialog();
             this.interact = true;
             this.hasBump = true;
         }
@@ -780,7 +888,8 @@ let sketch = function (p) {
             this.bumpTime--;
             this.off = this.off + 0.1;
             this.sign = Math.round(p.random(-1, 1));
-            this.y = this.y + (this.sign * p.noise(this.off));
+            this.pos.y = this.pos.y + (this.sign * p.noise(this.off));
+            console.log(this.y);
             if (this.bumpTime < 0) {
                 this.pos = p.createVector(this.basePos.x, this.basePos.y);
                 this.off = 0;
@@ -793,6 +902,7 @@ let sketch = function (p) {
             if (this.shouldDraw) {
                 super.display();
                 if (this.doBump) {
+                    console.log("hihi");
                     this.bumpAnim();
                 }
             }
@@ -801,28 +911,46 @@ let sketch = function (p) {
         assignDialog() {
             for (var i = 0; i < text.characters.length; i++) {
                 if (this.img == text.characters[i].name) {
-                    this.allDialog = text.characters[i].dialog;
-                    if (text.characters[i].dialog[this.storyIndex].choices.length > 0) {
-                        this.choices = text.characters[i].dialog[this.storyIndex].choices;
-                        this.answers = text.characters[i].dialog[this.storyIndex].answers;
-                    }
-                    this.nextScene = text.characters[i].dialog[this.storyIndex].nextScene;
-                    return text.characters[i].dialog[this.storyIndex].line;
+                    return text.characters[i].dialog;
                 }
             }
         }
 
+        // assignDialog() {
+        //     for (var i = 0; i < text.characters.length; i++) {
+        //         if (this.img == text.characters[i].name) {
+        //             this.allDialog = text.characters[i].dialog;
+        //             if (text.characters[i].dialog[this.storyIndex].choices.length > 0) {
+        //                 this.choices = text.characters[i].dialog[this.storyIndex].choices;
+        //                 this.answers = text.characters[i].dialog[this.storyIndex].answers;
+        //             }
+        //             this.neededItem = text.characters[i].dialog[this.storyIndex].needItem;
+        //             this.nextScene = text.characters[i].dialog[this.storyIndex].nextScene;
+        //             return text.characters[i].dialog[this.storyIndex].line;
+        //         }
+        //     }
+        // }
+
         adjustDialog() {
-            this.storyIndex = this.nextScene;
-            this.choices = [];
-            this.answers = [];
-            if (this.allDialog[this.storyIndex].choices.length > 0) {
-                this.choices = this.allDialog[this.storyIndex].choices;
-                this.answers = this.allDialog[this.storyIndex].answers;
-            }
-            this.dialog = this.allDialog[this.storyIndex].line;
-            this.nextScene = this.allDialog[this.storyIndex].nextScene;
+            this.storyIndex = this.data[this.storyIndex].nextScene;
+            this.dialog = this.data[this.storyIndex].line;
         }
+
+        gateSuccess(){
+            adjustDialog();
+        }
+
+        // adjustDialog() {
+        //     this.storyIndex = this.nextScene;
+        //     this.choices = [];
+        //     this.answers = [];
+        //     if (this.allDialog[this.storyIndex].choices.length > 0) {
+        //         this.choices = this.allDialog[this.storyIndex].choices;
+        //         this.answers = this.allDialog[this.storyIndex].answers;
+        //     }
+        //     this.dialog = this.allDialog[this.storyIndex].line;
+        //     this.nextScene = this.allDialog[this.storyIndex].nextScene;
+        // }
 
 
     }
@@ -860,7 +988,7 @@ let sketch = function (p) {
 
         display() {
             p.fill(this.col);
-            p.text(this.txt, this.pos.x, this.pos.y);
+            p.text(this.txt, this.pos.x, this.pos.y, 400);
         }
     }
 

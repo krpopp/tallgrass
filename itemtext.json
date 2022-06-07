@@ -7,14 +7,22 @@
                    "index": 0,
                    "line": "The door is locked.",
                    "name": "door",
+                   "hasGate": true,
                    "needItem":"$",
+                   "choices": [],
+                   "answers": [],
+                   "gateFail":0,
                    "nextScene": 1
                 },
                 {
                    "index": 1,
                    "line": "I unlock the door.",
                    "name": "door",
-                   "needItem":"",
+                   "hasGate": false,
+                   "needItem":0,
+                   "choices": [],
+                   "answers": [],
+                   "gateFail":0,
                    "nextScene": 1
                 }
              ]
@@ -26,7 +34,11 @@
                   "index": 0,
                   "line": "I pick up a key.",
                   "name": "key",
-                  "needItem":"",
+                  "hasGate": false,
+                  "needItem":0,
+                  "choices": [],
+                  "answers": [],
+                  "gateFail":0,
                   "nextScene": 0
                }
             ]
