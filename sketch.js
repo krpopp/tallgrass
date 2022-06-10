@@ -12,9 +12,7 @@ let sketch = function (p) {
     //differentiate b/t diff sounds
     //better way to set up characters
     //animations
-    //add overlap back in
     //the color when opening a door is wrong
-    //check the cell, not the cell's pos
     //#endregion
 
     //#region Variable definitions
@@ -220,11 +218,12 @@ let sketch = function (p) {
             if (p.checkOuterBounds(player.gridPos.x + moveX, player.gridPos.y + moveY)) {
                 //var colVal = p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
                 if (Math.sign(moveX) != 0 || Math.sign(moveY) != 0) {
-                    p.handleDialog(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
-                    if (!p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY))) {
+                    var nextCell = visibleGrid[player.gridPos.x + Math.sign(moveX)][player.gridPos.y + Math.sign(moveY)];
+                    p.handleDialog(nextCell);
+                    if (!p.checkColl(nextCell)) {
                         p.switchVisibility(player.gridPos.x, player.gridPos.y, player.gridPos.x + moveX, player.gridPos.y + moveY);
-                        if(visibleGrid[player.gridPos.x + Math.sign(moveX)][player.gridPos.y + Math.sign(moveY)].hasOverlap){
-                            visibleGrid[player.gridPos.x + Math.sign(moveX)][player.gridPos.y + Math.sign(moveY)].overlap();
+                        if(nextCell.hasOverlap){
+                            nextCell.overlap();
                         }
                         if (p.checkInnerBoundsX(player.gridPos.x + moveX, player.gridPos.y + moveY, moveX) || p.checkInnerBoundsY(player.gridPos.x + moveX, player.gridPos.y + moveY, moveY)) {
                             player.move(moveX * cellOffset, moveY * cellOffset);
@@ -311,41 +310,39 @@ let sketch = function (p) {
     }
 
      /** checks to see if the cell the player is moving into has a collision event */
-     p.checkColl = function (_cellX, _cellY) {
-        var checkCell = visibleGrid[_cellX][_cellY];
-        if(checkCell.collide){
+     p.checkColl = function (_nextCell) {
+        if(_nextCell.collide){
             return true;
         } else{
             return false;
         }
     }
 
-    p.handleDialog = function(_cellX, _cellY){
-        var cell = visibleGrid[_cellX][_cellY];
-        if(cell.data != undefined){
-            if("needItem" in cell.currentStory && cell.isItem){
-                if(p.checkGate(_cellX, _cellY)){
-                    cell.gateSuccess();
+    p.handleDialog = function(_nextCell){
+        if(_nextCell.data != undefined){
+            if("needItem" in _nextCell.currentStory && _nextCell.isItem){
+                if(p.checkGate(_nextCell)){
+                    _nextCell.gateSuccess();
                 } 
-                p.addDialog(_cellX, _cellY);
+                p.addDialog(_nextCell);
             }  else {
-                    p.addDialog(_cellX, _cellY);
-                    if(cell.hasBump){
+                    p.addDialog(_nextCell);
+                    if(_nextCell.hasBump){
                         var randSound = p.random(sounds);
                         randSound.play();
-                        cell.doBump = true;
+                        _nextCell.doBump = true;
                     }
-                    if(cell.collect){
-                        inventory.push(new p.InventoryItem(cell.img, cell.name));
-                        cell.isCollected();
+                    if(_nextCell.collect){
+                        inventory.push(new p.InventoryItem(_nextCell.img, _nextCell.name));
+                        _nextCell.isCollected();
                     }
                 
             }
         }
     }
 
-    p.checkGate = function(_cellX, _cellY){
-        if(p.checkInventory(_cellX, _cellY)){
+    p.checkGate = function(_nextCell){
+        if(p.checkInventory(_nextCell)){
             return true;
         } else{
             return false;
@@ -353,10 +350,10 @@ let sketch = function (p) {
     }
 
     /** checks if the cell needs an item to work */
-    p.checkInventory = function (_cellX, _cellY) {
-        if ("needItem" in visibleGrid[_cellX][_cellY].currentStory) { //if the cell needs an item
+    p.checkInventory = function (_nextCell) {
+        if ("needItem" in _nextCell.currentStory) { //if the cell needs an item
             for (var i = 0; i < inventory.length; i++) { //check if the player has it
-                if (inventory[i].img == visibleGrid[_cellX][_cellY].currentStory.needItem) {
+                if (inventory[i].img == _nextCell.currentStory.needItem) {
                     return true;
                 } else{
                     return false;
@@ -465,22 +462,20 @@ let sketch = function (p) {
         }
     }
 
-    p.addDialog = function (_cellX, _cellY) {
-        var cell = visibleGrid[_cellX][_cellY];
+    p.addDialog = function (_nextCell) {
         p.newDialogLine("-----------------", p.color(255));
-        p.newDialogLine(cell.currentStory.line, cell.col);
-        if("choices" in cell.currentStory){
-            p.newDialogLine(cell.currentStory.choices[0] + " [1] or " + cell.currentStory.choices[1] + " [2]", p.color(255));
-            talkCellPos.x = _cellX;
-            talkCellPos.y = _cellY;
+        p.newDialogLine(_nextCell.currentStory.line, _nextCell.col);
+        if("choices" in _nextCell.currentStory){
+            p.newDialogLine(_nextCell.currentStory.choices[0] + " [1] or " + _nextCell.currentStory.choices[1] + " [2]", p.color(255));
+            talkCellPos.x = _nextCell.gridPos.x;
+            talkCellPos.y = _nextCell.gridPos.y;
             mustAnswer = true;
         }
     }
 
-    p.addFailDialog = function (_cellX, _cellY) {
-        var cell = visibleGrid[_cellX][_cellY];
+    p.addFailDialog = function (_nextCell) {
         p.newDialogLine("-----------------", p.color(255));
-        p.newDialogLine(cell.currentStory.gateFail, cell.col);
+        p.newDialogLine(_nextCell.currentStory.gateFail, _nextCell.col);
     }
 
     /** add answer dialog */
