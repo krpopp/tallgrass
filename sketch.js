@@ -13,10 +13,8 @@ let sketch = function (p) {
     //better way to set up characters
     //animations
     //add overlap back in
-    //make grid changes into an event
-        //when a cell changes its grid position
-        //the grid automatically refreshes
-        //and then position changes are made
+    //the color when opening a door is wrong
+    //check the cell, not the cell's pos
     //#endregion
 
     //#region Variable definitions
@@ -225,6 +223,9 @@ let sketch = function (p) {
                     p.handleDialog(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY));
                     if (!p.checkColl(player.gridPos.x + Math.sign(moveX), player.gridPos.y + Math.sign(moveY))) {
                         p.switchVisibility(player.gridPos.x, player.gridPos.y, player.gridPos.x + moveX, player.gridPos.y + moveY);
+                        if(visibleGrid[player.gridPos.x + Math.sign(moveX)][player.gridPos.y + Math.sign(moveY)].hasOverlap){
+                            visibleGrid[player.gridPos.x + Math.sign(moveX)][player.gridPos.y + Math.sign(moveY)].overlap();
+                        }
                         if (p.checkInnerBoundsX(player.gridPos.x + moveX, player.gridPos.y + moveY, moveX) || p.checkInnerBoundsY(player.gridPos.x + moveX, player.gridPos.y + moveY, moveY)) {
                             player.move(moveX * cellOffset, moveY * cellOffset);
                         } else{
@@ -321,28 +322,24 @@ let sketch = function (p) {
 
     p.handleDialog = function(_cellX, _cellY){
         var cell = visibleGrid[_cellX][_cellY];
-        if(cell.data != null){
-            if(cell.isItem && cell.data[cell.storyIndex].hasGate && !cell.complete){
+        if(cell.data != undefined){
+            if("needItem" in cell.currentStory && cell.isItem){
                 if(p.checkGate(_cellX, _cellY)){
                     cell.gateSuccess();
                 } 
                 p.addDialog(_cellX, _cellY);
             }  else {
-                if(!cell.complete){
                     p.addDialog(_cellX, _cellY);
                     if(cell.hasBump){
                         var randSound = p.random(sounds);
                         randSound.play();
                         cell.doBump = true;
                     }
-                    if(cell.data[visibleGrid[_cellX][_cellY].storyIndex].choices.length == 0){
-                        cell.adjustDialog();
-                        if(cell.collect){
-                            inventory.push(new p.InventoryItem(cell.img, cell.name));
-                            cell.isCollected();
-                        }
-                    } 
-                }
+                    if(cell.collect){
+                        inventory.push(new p.InventoryItem(cell.img, cell.name));
+                        cell.isCollected();
+                    }
+                
             }
         }
     }
@@ -357,9 +354,9 @@ let sketch = function (p) {
 
     /** checks if the cell needs an item to work */
     p.checkInventory = function (_cellX, _cellY) {
-        if (visibleGrid[_cellX][_cellY].data.needItem != 0) { //if the cell needs an item
+        if ("needItem" in visibleGrid[_cellX][_cellY].currentStory) { //if the cell needs an item
             for (var i = 0; i < inventory.length; i++) { //check if the player has it
-                if (inventory[i].img == visibleGrid[_cellX][_cellY].data[visibleGrid[_cellX][_cellY].storyIndex].needItem) {
+                if (inventory[i].img == visibleGrid[_cellX][_cellY].currentStory.needItem) {
                     return true;
                 } else{
                     return false;
@@ -469,12 +466,11 @@ let sketch = function (p) {
     }
 
     p.addDialog = function (_cellX, _cellY) {
-        var storyPoint = visibleGrid[_cellX][_cellY].storyIndex;
-        var cellData = visibleGrid[_cellX][_cellY].data[storyPoint];
+        var cell = visibleGrid[_cellX][_cellY];
         p.newDialogLine("-----------------", p.color(255));
-        p.newDialogLine(cellData.line, visibleGrid[_cellX][_cellY].col);
-        if(cellData.choices.length > 0){
-            p.newDialogLine(cellData.choices[0] + " [1] or " + cellData.choices[1] + " [2]", p.color(255));
+        p.newDialogLine(cell.currentStory.line, cell.col);
+        if("choices" in cell.currentStory){
+            p.newDialogLine(cell.currentStory.choices[0] + " [1] or " + cell.currentStory.choices[1] + " [2]", p.color(255));
             talkCellPos.x = _cellX;
             talkCellPos.y = _cellY;
             mustAnswer = true;
@@ -482,29 +478,27 @@ let sketch = function (p) {
     }
 
     p.addFailDialog = function (_cellX, _cellY) {
-        var storyPoint = visibleGrid[_cellX][_cellY].storyIndex;
-        var cellData = visibleGrid[_cellX][_cellY].data[storyPoint];
+        var cell = visibleGrid[_cellX][_cellY];
         p.newDialogLine("-----------------", p.color(255));
-        p.newDialogLine(cellData.gateFail, visibleGrid[_cellX][_cellY].col);
+        p.newDialogLine(cell.currentStory.gateFail, cell.col);
     }
 
     /** add answer dialog */
     p.addAnswerDialog = function ( _index) {
         var cell = visibleGrid[talkCellPos.x][talkCellPos.y];
-        var storyPoint = cell.storyIndex;
-        var cellData = cell.data[storyPoint];
+        var cellData = cell.currentStory;
         cell.doBump = true;
         var randSound = p.random(sounds);
         randSound.play();
         p.newDialogLine(cellData.choices[_index], p.color(255));
-        if(cellData.hasGate){
+        if("gateFail" in cellData){
             if(p.checkGate(talkCellPos.x, talkCellPos.y) && _index == 0){
                 p.newDialogLine(cellData.answers[_index], cell.col);
                 cell.adjustDialog();
             } else if(_index == 1){
-                p.newDialogLine(cellData.answers[_index], visibleGrid[talkCellPos.x][talkCellPos.y].col);
+                p.newDialogLine(cellData.answers[_index], cell.col);
             }else{
-                p.newDialogLine(cellData.gateFail, visibleGrid[talkCellPos.x][talkCellPos.y].col);
+                p.newDialogLine(cellData.gateFail, cell.col);
             }
         } else{
             p.newDialogLine(cellData.answers[_index], cell.col);
@@ -549,22 +543,6 @@ let sketch = function (p) {
                 visibleGrid[x][y].gridPos.y = y;
                 visibleGrid[x][y].basePos.x = visibleGrid[x][y].pos.x;
                 visibleGrid[x][y].basePos.y = visibleGrid[x][y].pos.y;
-            }
-        }
-    }
-
-    p.adjustWholeGrid = function(){
-        console.log(gridVisiblePos.x);
-        for (var x = gridVisiblePos.x; x < gridWidthVisible; x++) {
-            for (var y = gridVisiblePos.y; y < gridHeightVisible; y++) {
-                grid[x][y] = visibleGrid[x][y];
-                // visibleGrid[x][y] = grid[gridVisiblePos.x + x][gridVisiblePos.y + y];
-                // visibleGrid[x][y].pos.x = x * cellOffset + gridOffset;
-                // visibleGrid[x][y].pos.y = y * cellOffset + gridOffset;
-                // visibleGrid[x][y].gridPos.x = x;
-                // visibleGrid[x][y].gridPos.y = y;
-                // visibleGrid[x][y].basePos.x = visibleGrid[x][y].pos.x;
-                // visibleGrid[x][y].basePos.y = visibleGrid[x][y].pos.y;
             }
         }
     }
@@ -740,30 +718,24 @@ let sketch = function (p) {
             this.col = p.color(176, 148, 63);
             this.collide = true;
 
-            this.data = this.assignDialog();
+            this.data = this.assignData();
             this.storyIndex = 0;
-            this.dialog = this.data[this.storyIndex].line;
-            // this.neededItem = 0;
+            this.currentStory = this.data[this.storyIndex];
 
             this.isItem = true;
-
-            this.complete = false;
-            
-            //this.dialog = this.assignDialog();
         }
 
-        assignDialog() {
+        assignData() {
             for (var i = 0; i < itemText.items.length; i++) {
                 if (this.img == itemText.items[i].object) {
-                    return itemText.items[i].dialog;
+                    return itemText.items[i].data;
                 }
             }
         }
 
         adjustDialog() {
             this.storyIndex = this.data[this.storyIndex].nextScene;
-            this.dialog = this.data[this.storyIndex].line;
-            this.complete = true;
+            this.currentStory = this.data[this.storyIndex];
         }
 
         gateSuccess(){
@@ -771,7 +743,7 @@ let sketch = function (p) {
             this.col = p.color(100, 100, 100);
             this.collide = false;
             this.img = ".";
-            this.dialog = "";
+            this.data = undefined;
         }
 
     }
@@ -781,22 +753,20 @@ let sketch = function (p) {
             super(_x, _y, _pos, _img);
             this.col = p.color(176, 148, 63);
             this.collect = true;
-            //this.allDialog = [];
-            //this.neededItem;
-            this.name;
             this.col = p.color(0, 0, 255);
-            this.data = this.assignDialog();
+            this.data = this.assignData();
             this.storyIndex = 0;
-            this.dialog = this.data[this.storyIndex].line;
+            this.currentStory = this.data[this.storyIndex];
+
+            this.name = this.currentStory.name;
 
             this.isItem = true;
-            //this.dialog = this.assignDialog();
         }
 
-        assignDialog() {
+        assignData() {
             for (var i = 0; i < itemText.items.length; i++) {
                 if (this.img == itemText.items[i].object) {
-                    return itemText.items[i].dialog;
+                    return itemText.items[i].data;
                 }
             }
         }
@@ -808,7 +778,7 @@ let sketch = function (p) {
         isCollected() {
             this.img = ".";
             this.col = p.color(100, 100, 100);
-            this.collect = false;
+            this.data = undefined;
         }
 
     }
@@ -824,10 +794,10 @@ let sketch = function (p) {
             this.animTime = this.animStart;
             this.doBump = false;
 
-            this.data = this.assignDialog();
+            this.data = this.assignData();
             this.storyIndex = 0;
-            this.dialog = this.data[this.storyIndex].line;
 
+            this.currentStory = this.data[this.storyIndex];
 
             this.isItem = false;
             this.off = 0;
@@ -932,21 +902,20 @@ let sketch = function (p) {
         //         if(this.animFrame >= this.data[this.storyIndex].animWalk.length){
         //             this.animFrame = 0;
         //         } 
-        //         p.adjustWholeGrid();
         //     }
         // }
 
-        assignDialog() {
+        assignData() {
             for (var i = 0; i < text.characters.length; i++) {
                 if (this.img == text.characters[i].name) {
-                    return text.characters[i].dialog;
+                    return text.characters[i].data;
                 }
             }
         }
 
         adjustDialog() {
             this.storyIndex = this.data[this.storyIndex].nextScene;
-            this.dialog = this.data[this.storyIndex].line;
+            this.currentStory = this.data[this.storyIndex];
         }
 
         gateSuccess(){
