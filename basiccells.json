@@ -1,0 +1,180 @@
+{
+    "all":[
+          {
+             "cellImg":".",
+             "data":
+                {
+                   "color": [100, 100, 100],
+                   "collide": false
+                }
+          },
+          {
+            "cellImg":"̈",
+            "data":
+               {
+                  "color": [125, 89, 86],
+                  "collide": false
+               }
+         },
+         {
+            "cellImg":"¶",
+            "data":
+               {
+                  "color": [62, 99, 37],
+                  "collide": true
+               }
+         },
+         {
+            "cellImg":"*",
+            "data":
+               {
+                  "color": [161, 64, 154],
+                  "collide": false
+               }
+         },
+         {
+            "cellImg": "-",
+            "data":
+                {
+                    "color":[107, 76, 57],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▛",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▌",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▙",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▄",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▀",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "╽",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "┯",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "┷",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▜",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▐",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "▟",
+            "data":
+                {
+                    "color":[79, 47, 45],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "¤",
+            "data":
+                {
+                    "color":[100, 209, 102],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "ȏ",
+            "data":
+                {
+                    "color":[61, 93, 117],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "î",
+            "data":
+                {
+                    "color":[186, 184, 110],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "≏",
+            "data":
+                {
+                    "color":[87, 49, 110],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "ǽ",
+            "data":
+                {
+                    "color":[145, 28, 51],
+                    "collide": true
+                }
+         },
+         {
+            "cellImg": "Í",
+            "data":
+                {
+                    "color":[189, 244, 255],
+                    "collide": true
+                }
+         }
+    ]  
+ }

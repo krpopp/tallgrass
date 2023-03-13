@@ -52,6 +52,81 @@
                   "nextScene": 0
                }
             ]
+         },
+         {
+            "name":"n",
+            "data":[
+               {
+                  "index": 0,
+                  "ambientLine": ["Hey, hey, hey!", "Hey, come over here!"],
+                  "nextScene": 1
+               },
+               {
+                  "index": 1,
+                  "line": ["Wanna come in and play?", "I can't play outside, but I got lots we can do in my house."],
+                  "choices": ["Ok, sure", "Why can't we play inside?"],
+                  "nextScene": [2, 3]
+               },
+               {
+                  "index": 2,
+                  "line": "Yay! You can just come in, the door's unlocked.",
+                  "nextScene": 5,
+                  "animWalk": null
+               },
+               {
+                  "index": 3,
+                  "line": "My dad's asleep. Dads says I can't go outside 'less someones watchin' me.",
+                  "choices": ["Ok, sure", "I'd rather play outside."],
+                  "nextScene": [2, 4]
+               },
+               {
+                  "index": 4,
+                  "line": ["Oh", "Ok", "If you change your mind, I'll be here, I guess."],
+                  "nextScene": 1
+               },
+               {
+                  "index": 5,
+                  "line": ["What do you want to do?", "Dads says that guests get to pick first.", "Go up to somethin' and we can do that."]
+               },
+               {
+                  "index": 6,
+                  "line": "Go ahead, pick somethin'!",
+                  "gateChecks": ["abby_tv", "abby_games", "abby_draw"],
+                  "gateResponses": [["Uh, maybe not the TV", "Dads says the commericals wake him up."], ["Oh, a board game's a goood idea!", "Well, the buzzer's kinda loud.", "It might wake my dad up."], ["Yeah, drawin's nice 'n quiet.", "I'll go get the-", "Actually, I don't think we have any paper."]],
+                  "gateFail": "Pick somethin' else.",
+                  "nextScene": 7
+               },
+               {
+                  "index": 7,
+                  "line": ["I guess there's not really anything to do in here.", "Everything'll wake up my dad.", "So, nevermind.", "You should just go outside."],
+                  "choices": ["Ok, bye!", "How come we can't make noise?"],
+                  "nextScene": [8, 9]
+               },
+               {
+                  "index": 8,
+                  "line": ["Hey, my Dad's still asleep so we can't play.", "Everythin' would make too much noise.", "Maybe some other day when he's awake."],
+                  "choices": ["Ok, bye!", "How come we can't make noise?"],
+                  "nextScene": [8, 9]
+               },
+               {
+                  "index": 9,
+                  "line": ["My Dads works at night most times.", "An' he gets sad 'n grumpy if I wake him up during the day."],
+                  "choices": ["How come he works at night?", "How come get gets sad?"],
+                  "nextScene": [10, 11]
+               }, 
+               {
+                  "index": 10,
+                  "line": ["I dunno, he says that's the only time The Manager gives him.", "But he gets so grumpy when he's awake that I think it's better to just let him sleep", "Maybe if The Manager gave him more time, he could wake up during the day."],
+                  "choices": ["How come he gets grumpy?", "Ok, I'll go do something else then."],
+                  "nextScene": [11, 8]
+               }, 
+               {
+                  "index": 11,
+                  "line": ["He says grown ups need to sleep...", "So they can work...", "So they can put dinner on the table...", "So kids don't get hungry.", "He says there's not enough time for him to work at night and watch me in the day.", "So that's why I gotta stay in here and play quiet."],
+                  "choices": ["How come he works at night?", "Ok, I'll go do something else then."],
+                  "nextScene": [10, 8]
+               }
+            ]
          }
    ]  
 }

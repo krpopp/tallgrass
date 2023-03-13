@@ -13,6 +13,7 @@ let sketch = function (p) {
     //better way to set up characters
     //animations
     //the color when opening a door is wrong
+    //redo particle system to be more flexible
     //#endregion
 
     //#region Variable definitions
@@ -27,13 +28,16 @@ let sketch = function (p) {
     /** All item text. */
     var itemText;
 
+    /** Basic (non interactive) cell data. */
+    var basicCells;
+
     /** Width of entire grid. */
     var gridWidth = 0;
     /** Height of entire grid. */
     var gridHeight = 0;
 
     /** Offset for x and y of each character visible in the grid. */
-    var cellOffset = 25;
+    var cellOffset = 38;
     /** Offset for x and y of the entire grid. */
     var gridOffset = 40;
 
@@ -43,7 +47,7 @@ let sketch = function (p) {
     /** Width of visible grid. */
     var gridWidthVisible = 30;
     /** Height of visible grid */
-    var gridHeightVisible = 30;
+    var gridHeightVisible = 29;
     /** Top left starting point for the visible grid */
     var gridVisiblePos = p.createVector(0, 0);
 
@@ -58,7 +62,7 @@ let sketch = function (p) {
     /** Object of player. */
     var player;
     /** Cell player starts at */
-    var playerStartPos = p.createVector(33, 4);
+    var playerStartPos = p.createVector(10, 20);
 
     var upKey = 'w';
     var downKey = 's';
@@ -99,18 +103,29 @@ let sketch = function (p) {
 
     var sounds = [];
 
+    var sound_lamp_on;
+    var sound_tv_on;
+    var sound_tv_channels = [];
+
+    var rain = [];
+    var rainRate = 3;
+
     //#endregion
 
     p.preload = function () {
-        level = p.loadTable('level1.csv');
+        level = p.loadTable('homearea.csv');
         text = p.loadJSON('text.json');
         itemText = p.loadJSON('itemtext.json');
-        font = p.loadFont('myprime2.ttf');
+        font = p.loadFont('newfont.ttf');
         textFont = p.loadFont('baseprime.ttf');
+        basicCells = p.loadJSON('basiccells.json');
+
+        sound_tv_channels[0] = p.loadSound('audio/tvsport.mp3');
+        sound_tv_channels[1] = p.loadSound('audio/tvstatic.mp3');
     }
 
     p.setup = function () {
-        p.createCanvas(1700, 800);
+        p.createCanvas(window.innerWidth, window.innerHeight);
 
         scrollPos = p.createVector(p.width - 500, 0);
 
@@ -160,18 +175,26 @@ let sketch = function (p) {
         sounds[1] = p.loadSound('sound2.mp3');
         sounds[2] = p.loadSound('sound3.mp3');
 
-        player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].pos.x, visibleGrid[playerStartPos.x][playerStartPos.y].pos.y, "O", playerStartPos);
+        sound_lamp_on = p.loadSound('audio/lampon.mp3');
+        sound_tv_on = p.loadSound('audio/tvon.mp3');
+
+
+        player = new p.Player(visibleGrid[playerStartPos.x][playerStartPos.y].pos.x, visibleGrid[playerStartPos.x][playerStartPos.y].pos.y, "o", playerStartPos);
         p.adjustVisibleGrid();
         visibleGrid[player.gridPos.x][player.gridPos.y].shouldDraw = false;
         p.angleMode(p.DEGREES);
         p.setAttributes('antialias', false);
+        p.noStroke();
+
+
+        
     };
 
     p.draw = function () {
         p.clear();
-        p.textSize(24);
+        p.textSize(54);
         p.textFont(font);
-
+        p.noStroke();
         //loop through and show the grid
         for (var x = 0; x < gridWidthVisible; x++) {
             for (var y = 0; y < gridHeightVisible; y++) {
@@ -179,7 +202,7 @@ let sketch = function (p) {
             }
         }
 
-        p.textSize(18);
+       // p.textSize(18);
         p.fill(255);
         player.display();
 
@@ -228,6 +251,9 @@ let sketch = function (p) {
                         if (p.checkInnerBoundsX(player.gridPos.x + moveX, player.gridPos.y + moveY, moveX) || p.checkInnerBoundsY(player.gridPos.x + moveX, player.gridPos.y + moveY, moveY)) {
                             player.move(moveX * cellOffset, moveY * cellOffset);
                         } else{
+                            if(player.lampPos != undefined){
+                                player.setShadow();
+                            }
                             p.adjustVisibleGrid();
                         }
                     }
@@ -297,6 +323,15 @@ let sketch = function (p) {
             case "$":
                 grid[_x][_y] = new p.PickAbleItem(_x, _y,_pos, _img);
                 break;
+            case "±":
+                grid[_x][_y] = new p.Fire(_x, _y, _pos, _img);
+                break;
+            case "ň":
+                grid[_x][_y] = new p.TV(_y, _y, _pos, _img);
+                break;
+            case "î":
+                grid[_x][_y] = new p.Lamp(_y, _y, _pos, _img);
+                break;
             default:
                 grid[_x][_y] = new p.Cell(_x, _y,_pos, _img);
                 break;
@@ -336,7 +371,15 @@ let sketch = function (p) {
                         inventory.push(new p.InventoryItem(_nextCell.img, _nextCell.name));
                         _nextCell.isCollected();
                     }
-                
+            }   
+        }
+        if(_nextCell.on != undefined){
+            if(_nextCell.on){
+                _nextCell.offFunction();
+                _nextCell.on = false;
+            } else{
+                _nextCell.onSound();
+                _nextCell.on = true;
             }
         }
     }
@@ -542,6 +585,33 @@ let sketch = function (p) {
         }
     }
 
+    p.makeRain = function(){
+        for(var i = 0; i < 30; i++){
+            var newPart = new p.RainParticles(p.random(0, p.width), -p.random(0, p.height));
+            rain.push(newPart);
+        }
+        
+    }
+
+    p.runRain = function(){
+        rainRate--;
+        if(rainRate <= 0){
+            var newPart = new p.RainParticles(p.random(0, p.width), 0);
+            rain.push(newPart);
+            rainRate = p.random(2, 5);
+        }
+        
+        
+        for(var i = rain.length - 1; i >= 0; i--){
+            rain[i].update();
+            rain[i].display();
+            if(rain[i].finished()){
+                rain.splice(i, 1);
+            }
+        }
+    }
+
+
     p.Cell = class {
         constructor(_x, _y, _pos, _img) {
             this.pos = p.createVector(_pos.x, _pos.y);
@@ -552,27 +622,21 @@ let sketch = function (p) {
             this.gridPos = p.createVector(_x, _y);
 
             this.collide = false;
-
+            this.col = undefined;
             this.basePos = p.createVector(_pos.x, _pos.y);
-
-            if (this.img == ".") {
-                this.col = p.color(100, 100, 100);
-            } else if (this.img == '|') {
-                this.col = p.color(100, 100, 100);
-                this.collide = true;
-            } else if (this.img == '-') {
-                this.col = p.color(107, 76, 57);
-            } else if (this.img == '〰') {
-                this.col = p.color(48, 29, 16);
-            } else if (this.img == '█') {
-                this.col = p.color(79, 47, 45);
-                this.collide = true;
-            } else if (this.img == '=') {
-                this.col = p.color(0, 148, 0);
-                this.collide = true;
-            } else {
-                this.col = p.color(255, 255, 255);
+            for(var i = 0; i < basicCells.all.length; i++){      
+                var checkImg = basicCells.all[i];
+                if(checkImg.cellImg === this.img){
+                    this.col = checkImg.data.color;
+                    this.collide = checkImg.data.collide;
+                }
             }
+
+            if(this.col === undefined){
+                this.col = p.color(255);
+            }
+
+          
         }
 
         display() {
@@ -741,6 +805,144 @@ let sketch = function (p) {
             this.data = undefined;
         }
 
+    }
+
+    p.Fire = class extends p.Cell{
+        constructor(_x, _y, _pos, _img){
+            super(_x, _y, _pos, _img);
+            this.col = p.color(227, 93, 52);
+            this.collide = true;
+
+            this.off = 0;
+
+            this.particles = [];
+
+            this.particleRate = 25;
+        }
+
+        display(){
+            this.particleRate--;
+            if(this.particleRate < 0){
+                var newPart = new p.Particles(this.pos.x + cellOffset/3.5, this.pos.y - cellOffset/3);
+                this.particles.push(newPart);
+                this.particleRate = p.random(50, 100);
+            }
+            
+            for(var i = this.particles.length - 1; i >= 0; i--){
+                this.particles[i].update();
+                this.particles[i].display();
+                if(this.particles[i].finished()){
+                    this.particles.splice(i, 1);
+                }
+            }
+            this.off = this.off + 2;
+            this.sign = Math.round(p.random(-1, 1));
+            this.off = this.sign * this.off;
+            for(var i = 4; i > 0; i--){
+                var alpha = 5 - i;
+                p.fill(227, 93, 52, (alpha * 10) + this.off);
+                p.ellipse(this.pos.x + cellOffset/3.5, this.pos.y - cellOffset/3, i * 7, i * 7);
+            }
+            p.fill(this.col);
+            p.text(this.img, this.pos.x, this.pos.y);
+        }
+    }
+
+    p.TV = class extends p.Cell{
+        constructor(_x, _y, _pos, _img){
+            super(_x, _y, _pos, _img);
+            this.col = p.color(52, 171, 173);
+            this.collide = true;
+
+            this.off = 0;
+            this.flickerCount = 10;
+            this.colorCount = 80;
+
+            this.r = p.random(100, 255);
+            this.g = p.random(100, 255);
+            this.b = p.random(100, 255);
+
+            this.on = false;
+
+            this.channel = p.random(sound_tv_channels);
+        }
+
+        display(){
+            p.fill(this.col);
+            p.text(this.img, this.pos.x, this.pos.y);
+            if(this.on){
+                if(!sound_tv_on.isPlaying()){
+                    this.channelSound();
+                }
+                this.flickerCount--;
+                this.colorCount--;
+                if(this.flickerCount < 0){
+                    this.off = this.off + 5;
+                    this.sign = Math.round(p.random(-1, 1));
+                    this.off = this.sign * this.off;
+                    this.flickerCount = p.random(5, 10);
+                }
+                if(this.colorCount < 0){
+                    this.r = p.random(100, 255);
+                    this.g = p.random(100, 255);
+                    this.b = p.random(100, 255);
+                    this.colorCount = p.random(80, 100);
+                }
+
+                for(var i = 4; i > 0; i--){
+                    var alpha = 5 - i;
+                    p.fill(this.r, this.g, this.b, (alpha * 10) + this.off);
+                    p.ellipse(this.pos.x + cellOffset/3, this.pos.y - cellOffset/2, (cellOffset/5) + i * 10, (cellOffset/5) + i * 10);
+                }
+            }
+        }
+
+        onSound(){
+            sound_tv_on.play();
+        }
+
+        channelSound(){
+            if(!this.channel.isPlaying()){
+                this.channel.play();
+            }
+        }
+
+        offFunction(){
+            if(this.channel.isPlaying){
+                this.channel.stop();
+            }
+        }
+    }
+
+    p.Lamp = class extends p.Cell{
+        constructor(_x, _y, _pos, _img){
+            super(_x, _y, _pos, _img);
+            this.col = p.color(186, 184, 110);
+
+            this.on = false;
+        }
+
+        display(){
+            p.fill(this.col);
+            p.text(this.img, this.pos.x, this.pos.y);
+            if(this.on){
+                for(var i = 4; i > 0; i--){
+                    var alpha = 5 - i;
+                    p.fill(186, 184, 110, (alpha * 10));
+                    p.ellipse(this.pos.x + cellOffset/3, this.pos.y - cellOffset/2, (cellOffset/5) + i * 20, (cellOffset/5) + i * 20);
+                }
+            }
+        }
+
+        onSound(){
+            player.lampPos = this.gridPos;
+            player.setShadow();
+            sound_lamp_on.play();
+        }
+
+        offFunction(){
+            player.lampPos = undefined;
+        }
     }
 
     p.PickAbleItem = class extends p.Cell {
@@ -931,15 +1133,37 @@ let sketch = function (p) {
             this.pos = p.createVector(_x, _y);
             this.gridPos = _pos;
             this.img = _img;
+
+            this.lampPos = undefined;
+            this.shadowPos = undefined;
         }
 
         display() {
+            if(this.lampPos != undefined){
+                p.fill(0);
+                p.drawingContext.shadowOffsetX = this.shadowPos.x;
+                p.drawingContext.shadowOffsetY = this.shadowPos.y;
+                p.drawingContext.shadowColor = 'black';
+            }
+            p.fill(255);
             p.text(this.img, this.pos.x, this.pos.y);
+            if(this.lampPos != undefined){
+                p.drawingContext.shadowOffsetX = 0;
+                p.drawingContext.shadowOffsetY = 0;
+                p.drawingContext.shadowBlur = 0;
+            }
+        }
+
+        setShadow(){
+            this.shadowPos = p.createVector(10 * (this.gridPos.x - this.lampPos.x), 10 * (this.gridPos.y - this.lampPos.y));
         }
 
         move(_x, _y) {
             this.pos.add(_x, _y);
             this.gridPos.add(Math.sign(_x), Math.sign(_y));
+            if(this.lampPos != undefined){
+                this.setShadow();
+            }
         }
     }
 
@@ -953,6 +1177,61 @@ let sketch = function (p) {
         display() {
             p.fill(this.col);
             p.text(this.txt, this.pos.x, this.pos.y, 400);
+        }
+    }
+
+    p.Particles = class{
+        constructor(_x, _y){
+            this.pos = p.createVector(_x, _y);
+            this.vx = p.random(-1, 1);
+            this.vy = p.random(-1, -.5);
+            this.alpha = 255;
+        }
+
+        finished(){
+            return this.alpha < 0;
+        }
+
+        update(){
+            this.signX = p.random(-1, 1);
+            //this.signY = p.random(1, 1);
+
+            this.pos.x += this.signX * p.noise(this.vx);
+            this.pos.y += this.vy;
+            this.alpha -= 10;
+        }
+
+        display(){
+            p.fill(219, 48, 29, this.alpha);
+            p.ellipse(this.pos.x, this.pos.y, 3);
+        }
+    }
+
+    p.RainParticles = class{
+        constructor(_x, _y){
+            this.pos = p.createVector(_x, _y);
+            this.speedX = -3;
+            this.speedY = p.random(4, 5);
+        }
+
+        finished(){
+            return this.y > p.height;
+        }
+
+        update(){
+            this.pos.add(this.speedX, this.speedY);
+            // this.signX = p.random(-1, 1);
+            // //this.signY = p.random(1, 1);
+
+            // this.pos.x += this.signX * p.noise(this.vx);
+            // this.pos.y += this.vy;
+            // this.alpha -= 10;
+        }
+
+        display(){
+            p.strokeWeight(2);
+            p.stroke(255);
+            p.line(this.pos.x, this.pos.y, this.pos.x - 20, this.pos.y + 30);
         }
     }
 
